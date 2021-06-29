@@ -1,10 +1,8 @@
-<<<<<<< HEAD
 .DS_Store
 .vscode/
 build/
-=======
 Makefile
 *.o
 *.a
 rtwo
->>>>>>> 5f605a87a4b7b9519f95b27bf663a3c09e87d708
+CMake*
