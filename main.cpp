@@ -4,7 +4,7 @@
 #include <time.h>
 #include <SDL2/SDL.h>
 #include <glm/glm.hpp>
-#include "image.hpp"
+#include "pixelBuffer.hpp"
 
 // Get a random number from 0 to 255
 int randInt(int rmin, int rmax) {
@@ -28,13 +28,13 @@ int main(int argc, char **argv) {
     // Create a renderer (accelerated and in sync with the display refresh rate)
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);    
 
+    PixelBuffer pixelBuffer = PixelBuffer(width, height);
+    
     SDL_Texture * texture = SDL_CreateTexture(renderer,
-            SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, width, height);
+            pixelBuffer.pixelFormat, SDL_TEXTUREACCESS_STREAMING, width, height);
 
     // Initial renderer color
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-
-    Image image = Image(width, height);
 
 
     bool running = true;
@@ -52,19 +52,12 @@ int main(int argc, char **argv) {
             }
         }
 
-        SDL_UpdateTexture(texture, NULL, image.pixels,  width * sizeof(Uint32));
-        image.clear();
+        SDL_UpdateTexture(texture, NULL, pixelBuffer.pixels,  width * sizeof(Uint32));
+        pixelBuffer.clear();
 
         // Clear screen
         SDL_RenderClear(renderer);
-
-        // Draw
-        // for (int i = 0; i < width; i++) {
-        //     for (int j = 0; i < height; j++) {
-        //         image.setPixel(i, j, glm::ivec3(i % 255, j % 255, 126), 0);
-        //     }
-        // }
-        image.setPixel(width / 2, height / 2, glm::ivec3(255, 0, 0), 0);
+        pixelBuffer.setPixel(width / 2, height / 2, glm::vec3(0, 1, 0));
         SDL_RenderCopy(renderer, texture, NULL, NULL);
 
         // Show what was drawn
