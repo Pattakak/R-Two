@@ -11,7 +11,7 @@ LD := g++
 LDFLAGS := -lSDL2
 
 all: $(OBJS) 
-	$(CXX) $(CXXFLAGS) $^ -o rtwo
+	$(LD) $^ -o rtwo $(LDFLAGS) 
 
 $(OBJ)/%.o: $(SRC)/%.cpp
 	$(CC) -I$(SRC) -c $< -o $@

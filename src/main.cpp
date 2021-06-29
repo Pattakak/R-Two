@@ -18,23 +18,14 @@ int main(int argc, char **argv) {
     // Create a renderer (accelerated and in sync with the display refresh rate)
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);    
 
-<<<<<<< HEAD
-    SDL_Texture * texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, WINDOW_WIDTH, WINDOW_HEIGHT);
-
-    // Initial renderer color
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-
-    Image image = Image(WINDOW_WIDTH, WINDOW_HEIGHT);
-=======
-    PixelBuffer pixelBuffer = PixelBuffer(width, height);
+    PixelBuffer pixelBuffer = PixelBuffer(WINDOW_WIDTH, WINDOW_HEIGHT);
     
     SDL_Texture * texture = SDL_CreateTexture(renderer,
-            pixelBuffer.pixelFormat, SDL_TEXTUREACCESS_STREAMING, width, height);
+            pixelBuffer.pixelFormat, SDL_TEXTUREACCESS_STREAMING, pixelBuffer.width, pixelBuffer.height);
 
     // Initial renderer color
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 
->>>>>>> 764edb1c7a9ce5c381ce8e05a7b7961a09e3c855
 
     bool running = true;
     SDL_Event event;
@@ -51,27 +42,12 @@ int main(int argc, char **argv) {
             }
         }
 
-<<<<<<< HEAD
-        // Clear old frame values
-        image.clear();
-        SDL_RenderClear(renderer);
-
-        // Draw
-        for (int i = 0; i < WINDOW_WIDTH - 1; i++) {
-            for (int j = 0; j < WINDOW_HEIGHT - 1; j++) {
-                image.setPixel(i, j, glm::ivec3(i % 255, j % 255, 126), 0);
-            }
-        }
-
-        SDL_UpdateTexture(texture, NULL, image.pixels,  WINDOW_WIDTH * sizeof(Uint32));
-=======
-        SDL_UpdateTexture(texture, NULL, pixelBuffer.pixels,  width * sizeof(Uint32));
+        SDL_UpdateTexture(texture, NULL, pixelBuffer.pixels,  pixelBuffer.width * sizeof(Uint32));
         pixelBuffer.clear();
 
         // Clear screen
         SDL_RenderClear(renderer);
-        pixelBuffer.setPixel(width / 2, height / 2, glm::vec3(0, 1, 0));
->>>>>>> 764edb1c7a9ce5c381ce8e05a7b7961a09e3c855
+        pixelBuffer.setPixel(pixelBuffer.width / 2, pixelBuffer.height / 2, glm::vec3(0, 1, 0));
         SDL_RenderCopy(renderer, texture, NULL, NULL);
 
         // Show what was drawn
