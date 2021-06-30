@@ -12,7 +12,7 @@
 int main(void) {
     // Create the two input vectors
     int i;
-    const long long LIST_SIZE = 100000000000;
+    const long long LIST_SIZE = 1000000;
     int *A = (int*)malloc(sizeof(int)*LIST_SIZE);
     int *B = (int*)malloc(sizeof(int)*LIST_SIZE);
     for(i = 0; i < LIST_SIZE; i++) {
