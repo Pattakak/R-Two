@@ -8,16 +8,17 @@ OBJS := $(patsubst $(SRC)/%.cpp, $(OBJ)/%.o, $(SOURCES))
 CXX := g++
 CXXFLAGS := -Wall -g
 LD := g++
-LDFLAGS := -lSDL2
+LDFLAGS := 
+LIBS := -lSDL2 
 
 all: $(OBJS) 
-	$(LD) $^ -o rtwo $(LDFLAGS) 
+	$(LD) $(LDFLAGS) $^ -o rtwo $(LIBS) 
 
 $(OBJ)/%.o: $(SRC)/%.cpp
-	$(CC) -I$(SRC) -c $< -o $@
+	$(CC) $(CXXFLAGS) -I$(SRC) -c $< -o $@
 
 $(OBJ)/%.o: $(SRC)/%.c
-	$(CC) -I$(SRC) -c $< -o $@
+	$(CC) $(CXXFLAGS) -I$(SRC) -c $< -o $@
 
 .PHONY: clean
 clean: 
