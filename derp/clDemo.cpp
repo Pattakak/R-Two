@@ -1,4 +1,4 @@
-#include "opencl.hpp"
+#include "../include/opencl.hpp"
 #include <iostream>
 #include <cassert>
 #include <numeric>
