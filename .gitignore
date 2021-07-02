@@ -4,5 +4,6 @@ build/
 Makefile
 *.o
 *.a
+*.txt
 rtwo
 CMake*

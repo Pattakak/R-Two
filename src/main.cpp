@@ -24,6 +24,7 @@ Kernel kernel;
 Context context;
 Program program;
 Buffer cl_output;
+Buffer cl_input;
 
 void pickPlatform(Platform& platform, const std::vector<Platform>& platforms){
 	
@@ -173,7 +174,7 @@ int main(int argc, char **argv) {
     SDL_Init(SDL_INIT_VIDEO);
 
     // Create an SDL window
-    SDL_Window *window = SDL_CreateWindow("Hello, SDL2", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_OPENGL);
+    SDL_Window *window = SDL_CreateWindow("R-Two", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_OPENGL);
 
     // Create a renderer (accelerated and in sync with the display refresh rate)
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);    
@@ -187,21 +188,26 @@ int main(int argc, char **argv) {
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 
 	cpu_output = new cl_float3[WINDOW_WIDTH * WINDOW_HEIGHT];
+	
 
 	initOpenCL();
 
 	// Create image buffer on the OpenCL device
 	cl_output = Buffer(context, CL_MEM_WRITE_ONLY, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(cl_float3));
+	cl_input  = Buffer(context, CL_MEM_READ_ONLY,  WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(cl_float3));
 
 	// pick a rendermode
-	unsigned int rendermode;
-	selectRenderMode(rendermode);
+	unsigned int rendermode = 1;
+	unsigned long frameCount = 0;
+	//selectRenderMode(rendermode);
 
 	// specify OpenCL kernel arguments
 	kernel.setArg(0, cl_output);
-	kernel.setArg(1, WINDOW_WIDTH);
-	kernel.setArg(2, WINDOW_HEIGHT);
-	kernel.setArg(3, rendermode);
+	kernel.setArg(1, cl_input);
+	kernel.setArg(2, WINDOW_WIDTH);
+	kernel.setArg(3, WINDOW_HEIGHT);
+	kernel.setArg(4, frameCount);
+	kernel.setArg(5, rendermode);
 
 	std::size_t global_work_size = WINDOW_WIDTH * WINDOW_HEIGHT;
 	std::size_t local_work_size = 64; 
@@ -209,7 +215,8 @@ int main(int argc, char **argv) {
     bool running = true;
     SDL_Event event;
     while(running) {
-        // Process events
+		kernel.setArg(4, ++frameCount);
+	    // Process events
         while(SDL_PollEvent(&event)) {
             if(event.type == SDL_QUIT) {
                 running = false;
@@ -220,11 +227,15 @@ int main(int argc, char **argv) {
                 }                    
             }
         }
+		
 
 		// Clear screen
         SDL_UpdateTexture(texture, NULL, pixelBuffer.pixels,  pixelBuffer.width * sizeof(Uint32));
         pixelBuffer.clear();
         SDL_RenderClear(renderer);
+
+		// Copy previous frame to GPU
+		queue.enqueueWriteBuffer(cl_input, CL_TRUE, 0, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(cl_float3), cpu_output);
 
 		// Draw
 		// launch the kernel
@@ -242,7 +253,6 @@ int main(int argc, char **argv) {
 			}
 		}
 
-        pixelBuffer.setPixel(pixelBuffer.width / 2, pixelBuffer.height / 2, glm::vec3(0, 1, 0));
         SDL_RenderCopy(renderer, texture, NULL, NULL);
 
         // Show what was drawn
