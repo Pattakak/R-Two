@@ -18,13 +18,12 @@ using std::vector;
 static const int WINDOW_WIDTH = 1280;
 static const int WINDOW_HEIGHT = 720;
 
-cl_float4* cpu_output;
 CommandQueue queue;
 Kernel kernel;
 Context context;
 Program program;
-Buffer cl_output;
-Buffer cl_input;
+Buffer cl_frame;
+Buffer cl_pixels;
 
 void pickPlatform(Platform& platform, const std::vector<Platform>& platforms){
 	
@@ -125,7 +124,6 @@ void initOpenCL()
 		cout << "\t\tMax compute units: " << devices[i].getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>() << endl;
 		cout << "\t\tMax work group size: " << devices[i].getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>() << endl << endl;
 	}
-
 	// Pick one device
 	Device device;
 	pickDevice(device, devices);
@@ -149,6 +147,7 @@ void initOpenCL()
 		char line[256];
 		file.getline(line, 255);
 		source += line;
+		source += '\n';
 	}
 
 	const char* kernel_source = source.c_str();
@@ -187,14 +186,11 @@ int main(int argc, char **argv) {
     // Initial renderer color
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 
-	//cpu_output = new cl_float3[WINDOW_WIDTH * WINDOW_HEIGHT];
-	
-
 	initOpenCL();
 
-	// Create image buffer on the OpenCL device
-	cl_output = Buffer(context, CL_MEM_WRITE_ONLY, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(Uint32));
-	cl_input  = Buffer(context, CL_MEM_READ_ONLY,  WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(Uint32));
+	// Create image buffers on the OpenCL device
+	cl_pixels = Buffer(context, CL_MEM_READ_ONLY,  WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(cl_uint));   // output pixels
+	cl_frame  = Buffer(context, CL_MEM_WRITE_ONLY, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(cl_float4)); // higher precision blend buffer
 
 	// pick a rendermode
 	unsigned int rendermode = 1;
@@ -202,12 +198,11 @@ int main(int argc, char **argv) {
 	//selectRenderMode(rendermode);
 
 	// specify OpenCL kernel arguments
-	kernel.setArg(0, cl_output);
-	kernel.setArg(1, cl_input);
+	kernel.setArg(0, cl_frame);
+	kernel.setArg(1, cl_pixels);
 	kernel.setArg(2, WINDOW_WIDTH);
 	kernel.setArg(3, WINDOW_HEIGHT);
 	kernel.setArg(4, frameCount);
-	kernel.setArg(5, rendermode);
 
 	std::size_t global_work_size = WINDOW_WIDTH * WINDOW_HEIGHT;
 	std::size_t local_work_size = 64; 
@@ -225,20 +220,16 @@ int main(int argc, char **argv) {
                     running = false;
                 }                    
 				if(strcmp(key, "Space") == 0) {
-                    pixelBuffer.clear();
+                    // signal next blend cycle
 					frameCount = 0;
                 }      
             }
         }
-		kernel.setArg(4, ++frameCount);
-		
-		// Copy previous frame to GPU
-		queue.enqueueWriteBuffer(cl_input, CL_TRUE, 0, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(Uint32), pixelBuffer.pixels);
+		kernel.setArg(4, frameCount++);
 
 		// Clear screen
-        SDL_UpdateTexture(texture, NULL, pixelBuffer.pixels,  pixelBuffer.width * sizeof(Uint32));
+        SDL_UpdateTexture(texture, NULL, pixelBuffer.pixels,  pixelBuffer.width * sizeof(cl_uint));
         SDL_RenderClear(renderer);
-
 
 		// Draw
 		// launch the kernel
@@ -246,7 +237,7 @@ int main(int argc, char **argv) {
 		queue.finish();
 
 		// read and copy OpenCL output to pixel buffer
-		queue.enqueueReadBuffer(cl_output, CL_TRUE, 0, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(Uint32), pixelBuffer.pixels);
+		queue.enqueueReadBuffer(cl_pixels, CL_TRUE, 0, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(cl_uint), pixelBuffer.pixels);
 
         SDL_RenderCopy(renderer, texture, NULL, NULL);
 

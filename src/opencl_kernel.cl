@@ -13,16 +13,15 @@ uint float4ToInt32(float4 color) {
 }
 
 float4 int32ToFloat4(uint color) {
-	uint r = (color & 0xF000 ) >> 24;
-	uint g = (color & 0x0F00 ) >> 16;
-	uint b = (color & 0x00F0 ) >> 8;
-	uint a = (color & 0x000F );
+	uint r = (color & 0xFF000000 ) >> 24;
+	uint g = (color & 0x00FF0000 ) >> 16;
+	uint b = (color & 0x0000FF00 ) >> 8;
+	uint a = (color & 0x000000FF );
 	return (float4)((float)r, (float)g, (float)b, (float)a) / 255.0f;
 }
 
-__kernel void render_kernel(__global uint *output, __global uint *input, int width, int height, unsigned long frameCount, int rendermode)
-{
-	const int work_item_id = get_global_id(0);		/* the unique global id of the work item for the current pixel */
+__kernel void render_kernel(__global float4 *frame, __global uint *pixels, int width, int height, unsigned long frameCount) {
+	const int work_item_id = get_global_id(0);			/* the unique global id of the work item for the current pixel */
 	int x_coord = work_item_id % width;					/* x-coordinate of the pixel */
 	int y_coord = work_item_id / width;					/* y-coordinate of the pixel */
 
@@ -31,11 +30,17 @@ __kernel void render_kernel(__global uint *output, __global uint *input, int wid
 	/* generate new noise each frame */
 	float n = noise((float3)(uv, frameCount));
 	float4 result = (float4)(n, n, n, 1.0f);
-	
-	/* blend */
-	/*result = (int32ToFloat4(input[work_item_id]) * (frameCount-1)  + result) / (frameCount);
-	*/
-	
-	/* convert to RGBA8888 */
-	output[work_item_id] = float4ToInt32(result);
+
+	if (frameCount <= 0) {
+		// clear running average
+		frame[work_item_id] = (float4)(0.0f,0.0f,0.0f,0.0f);
+	}
+	else {
+		// blend
+		result = (frame[work_item_id] * (frameCount-1)  + result) / frameCount;
+	}
+
+	/* write output */
+	frame[work_item_id]  = result;
+	pixels[work_item_id] = float4ToInt32(result);
 }
