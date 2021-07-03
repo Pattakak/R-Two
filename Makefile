@@ -7,9 +7,9 @@ OBJS := $(patsubst $(SRC)/%.cpp, $(OBJ)/%.o, $(SOURCES))
 OBJSOPT := $(patsubst $(SRC)/%.cpp, $(OBJ)/%-opt.o, $(SOURCES))
 
 CXX := g++
-CXXFLAGS := -Wall -g -std=c++14 -DCL_HPP_TARGET_OPENCL_VERSION=120 -DCL_HPP_MINIMUM_OPENCL_VERSION=120 -DDEBUG
+CXXFLAGS := -Wall -g -std=c++14 -DCL_HPP_TARGET_OPENCL_VERSION=120 -DCL_HPP_MINIMUM_OPENCL_VERSION=120 -DRTWO_DEBUG
 # Release C++ Flags
-RCXXFLAGS := -O3 -std=c++14 -DCL_HPP_TARGET_OPENCL_VERSION=120 -DCL_HPP_MINIMUM_OPENCL_VERSION=120 -DRELEASE
+RCXXFLAGS := -O3 -std=c++14 -DCL_HPP_TARGET_OPENCL_VERSION=120 -DCL_HPP_MINIMUM_OPENCL_VERSION=120 -DRTWO_RELEASE
 EXE := rtwo
 REXE := rtwo-opt
 LD := g++
@@ -32,10 +32,10 @@ $(REXE) release: $(OBJSOPT)
 	$(LD) $(LDFLAGS) $^ -o $(REXE) $(LIBS) 
 
 $(OBJ)/%-opt.o: $(SRC)/%.cpp
-	$(CC) $(CXXFLAGS) -I$(SRC) -c $< -o $@
+	$(CC) $(RCXXFLAGS) -I$(SRC) -c $< -o $@
 
 $(OBJ)/%-opt.o: $(SRC)/%.c
-	$(CC) $(CXXFLAGS) -I$(SRC) -c $< -o $@
+	$(CC) $(RCXXFLAGS) -I$(SRC) -c $< -o $@
 
 
 poopoo:

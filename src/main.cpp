@@ -245,7 +245,9 @@ int main(int argc, char **argv) {
         gettimeofday(&timestamp, NULL);
         msf = timestamp.tv_sec * 1000000 + timestamp.tv_usec;
         long long tdiff = msf - msi;
+#ifdef RTWO_DEBUG
         printf("%f FPS\n", (double) 1000000 / (double) tdiff);
+#endif
         msi = msf;
 
     }
