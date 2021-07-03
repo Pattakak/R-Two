@@ -187,14 +187,14 @@ int main(int argc, char **argv) {
     // Initial renderer color
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 
-	cpu_output = new cl_float3[WINDOW_WIDTH * WINDOW_HEIGHT];
+	//cpu_output = new cl_float3[WINDOW_WIDTH * WINDOW_HEIGHT];
 	
 
 	initOpenCL();
 
 	// Create image buffer on the OpenCL device
-	cl_output = Buffer(context, CL_MEM_WRITE_ONLY, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(cl_float3));
-	cl_input  = Buffer(context, CL_MEM_READ_ONLY,  WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(cl_float3));
+	cl_output = Buffer(context, CL_MEM_WRITE_ONLY, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(Uint32));
+	cl_input  = Buffer(context, CL_MEM_READ_ONLY,  WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(Uint32));
 
 	// pick a rendermode
 	unsigned int rendermode = 1;
@@ -215,7 +215,6 @@ int main(int argc, char **argv) {
     bool running = true;
     SDL_Event event;
     while(running) {
-		kernel.setArg(4, ++frameCount);
 	    // Process events
         while(SDL_PollEvent(&event)) {
             if(event.type == SDL_QUIT) {
@@ -225,33 +224,29 @@ int main(int argc, char **argv) {
                 if(strcmp(key, "Escape") == 0) {
                     running = false;
                 }                    
+				if(strcmp(key, "Space") == 0) {
+                    pixelBuffer.clear();
+					frameCount = 0;
+                }      
             }
         }
+		kernel.setArg(4, ++frameCount);
 		
+		// Copy previous frame to GPU
+		queue.enqueueWriteBuffer(cl_input, CL_TRUE, 0, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(Uint32), pixelBuffer.pixels);
 
 		// Clear screen
         SDL_UpdateTexture(texture, NULL, pixelBuffer.pixels,  pixelBuffer.width * sizeof(Uint32));
-        pixelBuffer.clear();
         SDL_RenderClear(renderer);
 
-		// Copy previous frame to GPU
-		queue.enqueueWriteBuffer(cl_input, CL_TRUE, 0, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(cl_float3), cpu_output);
 
 		// Draw
 		// launch the kernel
 		queue.enqueueNDRangeKernel(kernel, NULL, global_work_size, local_work_size);
 		queue.finish();
 
-		// read and copy OpenCL output to CPU
-		queue.enqueueReadBuffer(cl_output, CL_TRUE, 0, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(cl_float3), cpu_output);
-
-		for (int i = 0; i < WINDOW_WIDTH; i++) {
-			for (int j = 0; j < WINDOW_HEIGHT; j++) {
-				cl_float4 cl_vec = cpu_output[i + j * WINDOW_WIDTH];
-				glm::vec3 myVec(cl_vec.s[0], cl_vec.s[1], cl_vec.s[2]);
-				pixelBuffer.setPixel(i, j, myVec);
-			}
-		}
+		// read and copy OpenCL output to pixel buffer
+		queue.enqueueReadBuffer(cl_output, CL_TRUE, 0, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(Uint32), pixelBuffer.pixels);
 
         SDL_RenderCopy(renderer, texture, NULL, NULL);
 

@@ -13,7 +13,7 @@ class PixelBuffer {
         SDL_PixelFormatEnum pixelFormat;
 
         PixelBuffer() : width(0), height(0) {}
-        PixelBuffer(const unsigned short width, const unsigned short height, SDL_PixelFormatEnum pixelFormat = SDL_PIXELFORMAT_ABGR8888) 
+        PixelBuffer(const unsigned short width, const unsigned short height, SDL_PixelFormatEnum pixelFormat = SDL_PIXELFORMAT_RGBA8888) 
         : width(width), height(height), pixelFormat(pixelFormat) {
             pixels = new unsigned int[width * height];
             clear();
