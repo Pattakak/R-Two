@@ -32,13 +32,15 @@ void Camera::updateDirection() {
 }
 
 void Camera::addOrient(float pitchdif, float yawdif) {
-    printf("%f %f\n", pitch, yaw);
+    //printf("%f %f\n", pitch, yaw);
     pitch += pitchdif;
     yaw += yawdif;
     updateDirection();
+    /*
     printf("(p, y) = %f %f\n", this->pitch * 180.0f / M_PI, this->yaw * 180.0f / M_PI);
     printf("Dir: %f %f %f\n", dir.x, dir.y, dir.z);
     printf("Up : %f %f %f\n", up.x, up.y, up.z);
     printf("Rht: %f %f %f\n", right.x, right.y, right.z);
     printf("\n");
+    */
 }

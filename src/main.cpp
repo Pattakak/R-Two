@@ -224,7 +224,7 @@ int main(int argc, char **argv) {
                 if (mousedown) {
                     int mouse_x = event.motion.xrel;
                     int mouse_y = event.motion.yrel;
-                    printf("%d %d\n", mouse_x, mouse_y);
+                    //printf("%d %d\n", mouse_x, mouse_y);
                     cam.addOrient(-CAM_SENSITIVITY * mouse_y, CAM_SENSITIVITY * mouse_x);
                 }
                 break;
