@@ -6,4 +6,5 @@ Makefile
 *.a
 *.txt
 rtwo
+rtwo-opt
 CMake*

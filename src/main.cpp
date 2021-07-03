@@ -8,7 +8,8 @@
 #include <SDL2/SDL.h>
 #include <glm/glm.hpp>
 #include "pixelBuffer.hpp"
-#include "../include/opencl.hpp"
+#include "opencl.hpp"
+#include "camera.h"
 
 using namespace std;
 using namespace cl;
@@ -192,23 +193,52 @@ int main(int argc, char **argv) {
     init_ms = timestamp.tv_sec * 1000000 + timestamp.tv_usec;
     msi = init_ms;
 
+    // Camera to link to program, and a mousedown functionality that lets you capture the mouse
+    Camera cam = Camera();
+    
+    bool mousedown = false;
+
     bool running = true;
     SDL_Event event;
     while(running) {
         // Process events
         
         while(SDL_PollEvent(&event)) {
-            if(event.type == SDL_QUIT) {
+            const char * key;
+            switch (event.type) {
+                case SDL_QUIT:
                 running = false;
-            } else if(event.type == SDL_KEYDOWN) {
-                const char *key = SDL_GetKeyName(event.key.keysym.sym);
-                if(strcmp(key, "Escape") == 0) {
+                break;
+
+                case SDL_KEYDOWN:
+                key = SDL_GetKeyName(event.key.keysym.sym);
+                if (strcmp(key, "Escape") == 0) {
                     running = false;
-                }                    
-                if(strcmp(key, "Space") == 0) {
-                    // signal next blend cycle
+                } else if (strcmp(key, "Space") == 0) {
+                    // Signal next blend cycle
                     frameCount = 0;
-                }      
+                }
+                break;
+
+                case SDL_MOUSEMOTION: {
+                if (mousedown) {
+                    int mouse_x = event.motion.xrel;
+                    int mouse_y = event.motion.yrel;
+                    printf("%d %d\n", mouse_x, mouse_y);
+                    cam.addOrient(-CAM_SENSITIVITY * mouse_y, CAM_SENSITIVITY * mouse_x);
+                }
+                break;
+                }
+
+                case SDL_MOUSEBUTTONDOWN: {
+                    if (mousedown) SDL_SetRelativeMouseMode(SDL_FALSE);
+                    else SDL_SetRelativeMouseMode(SDL_TRUE);
+                    mousedown = !mousedown;
+                    break;
+                }
+
+                default:
+                break;
             }
         }
         kernel.setArg(4, frameCount++);
@@ -234,7 +264,7 @@ int main(int argc, char **argv) {
         msf = timestamp.tv_sec * 1000000 + timestamp.tv_usec;
         long long tdiff = msf - msi;
 #ifdef RTWO_DEBUG
-        printf("%f FPS\n", (double) 1000000 / (double) tdiff);
+        //printf("\r%10f FPS", (double) 1000000 / (double) tdiff); 
 #endif
         msi = msf;
 
