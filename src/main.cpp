@@ -4,6 +4,7 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include <sys/time.h>
 #include <SDL2/SDL.h>
 #include <glm/glm.hpp>
 #include "pixelBuffer.hpp"
@@ -126,7 +127,7 @@ void initOpenCL()
         char line[256];
         file.getline(line, 255);
         source += line;
-		source += "\n";
+        source += "\n";
     }
 
     const char* kernel_source = source.c_str();
@@ -191,10 +192,19 @@ int main(int argc, char **argv) {
     std::size_t global_work_size = WINDOW_WIDTH * WINDOW_HEIGHT;
     std::size_t local_work_size = 64; 
 
+    // Timestamps for measuring fps and performance
+    struct timeval timestamp;
+    gettimeofday(&timestamp, NULL);
+    long long init_ms;
+    long long msi, msf;
+    init_ms = timestamp.tv_sec * 1000000 + timestamp.tv_usec;
+    msi = init_ms;
+
     bool running = true;
     SDL_Event event;
     while(running) {
         // Process events
+        
         while(SDL_PollEvent(&event)) {
             if(event.type == SDL_QUIT) {
                 running = false;
@@ -231,6 +241,13 @@ int main(int argc, char **argv) {
 
         // Show what was drawn
         SDL_RenderPresent(renderer);
+        // Show the fps and update the timestamps
+        gettimeofday(&timestamp, NULL);
+        msf = timestamp.tv_sec * 1000000 + timestamp.tv_usec;
+        long long tdiff = msf - msi;
+        printf("%f FPS\n", (double) 1000000 / (double) tdiff);
+        msi = msf;
+
     }
 
     // Release resources
