@@ -7,8 +7,13 @@
 #include <sys/time.h>
 #include <SDL2/SDL.h>
 #include <glm/glm.hpp>
-#include "window.h"
+#include "pixelBuffer.hpp"
+#ifdef __APPLE__
+#include "../include/opencl.hpp"
+#else
 #include "opencl.hpp"
+#endif
+#include "window.h"
 #include "camera.h"
 #include "clmacros.h"
 
@@ -199,16 +204,12 @@ int main(int argc, char **argv) {
     init_ms = timestamp.tv_sec * 1000000 + timestamp.tv_usec;
     msi = init_ms;
 
-    // Keys initialization
-    for (int i = 0; i < (int) KEY_NUM_KEYS; i++) {
-        keys_pressed[i] = false;
-    }
-
     
     bool mousedown = false;
 
     bool running = true;
     SDL_Event event;
+    long long tdiff = 1000000; // Init tdiff to 1 second (arbitrary)
     while(running) {
         // Process events
         
@@ -226,22 +227,10 @@ int main(int argc, char **argv) {
                 } else if (strcmp(key, "Space") == 0) {
                     // Signal next blend cycle
                     frameCount = 0;
-                } else if (strcmp(key, "W") == 0) {
-                    keys_pressed[KEY_W] = true;
-                } else if (strcmp(key, "A") == 0) {
-                    keys_pressed[KEY_A] = true;
-                } else if (strcmp(key, "S") == 0) {
-                    keys_pressed[KEY_S] = true;
-                } else if (strcmp(key, "D") == 0) {
-                    keys_pressed[KEY_D] = true;
-                } else if (strcmp(key, "Shift") == 0) {
-                    keys_pressed[KEY_SHIFT] = true;
-                    printf("Shift\n");
-                }
+                } 
                 break;
 
                 case SDL_KEYUP:
-                printf("Key up\n");
                 break;
 
                 case SDL_MOUSEMOTION: {
@@ -269,6 +258,40 @@ int main(int argc, char **argv) {
                 break;
             }
         }
+        const Uint8 *keystates = SDL_GetKeyboardState(NULL);
+        float forward = 0.0f, sideways = 0.0f, vertical = 0.0f;
+        bool moved = false;
+        if (keystates[SDL_SCANCODE_W]) {
+            forward += CAM_SPEED * (float) tdiff / 1000.0f;
+            moved = true;
+        }
+        if (keystates[SDL_SCANCODE_S]) {
+            forward -= CAM_SPEED * (float) tdiff / 1000.0f;
+            moved = true;
+        }
+        if (keystates[SDL_SCANCODE_A]) {
+            sideways += CAM_SPEED * (float) tdiff / 1000.0f;
+            moved = true;
+        }
+        if (keystates[SDL_SCANCODE_D]) {
+            sideways -= CAM_SPEED * (float) tdiff / 1000.0f;
+            moved = true;
+        }
+        if (keystates[SDL_SCANCODE_LSHIFT]) {
+            vertical += CAM_SPEED * (float) tdiff / 1000.0f;
+            moved = true;
+        }
+        if (keystates[SDL_SCANCODE_RSHIFT]) {
+            vertical  -= CAM_SPEED * (float) tdiff / 1000.0f;
+            moved = true;
+        }
+        if (moved) {
+            cam.moveDirection(forward, sideways, vertical);
+            frameCount = 0;
+            kernel.setArg(CL_INPUT_CAM_POS, cam.pos);
+        }
+
+
         kernel.setArg(4, frameCount++);
 
         // Clear screen
@@ -290,7 +313,7 @@ int main(int argc, char **argv) {
         // Show the fps and update the timestamps
         gettimeofday(&timestamp, NULL);
         msf = timestamp.tv_sec * 1000000 + timestamp.tv_usec;
-        long long tdiff = msf - msi;
+        tdiff = msf - msi;
 #if 1
         printf("\r%10f FPS", (double) 1000000 / (double) tdiff); 
 #endif

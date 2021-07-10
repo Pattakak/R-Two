@@ -35,6 +35,10 @@ void Camera::moveDirection(float forward, float sideways, float vertical) {
     pos.x += forward * cos(yaw) + sideways * sin(yaw);
     pos.z += forward * sin(yaw) - sideways * cos(yaw);
     pos.y += vertical;
+
+    #if 0
+    printf("(x,y,z) = %f %f %f\n", pos.x, pos.y, pos.z);
+    #endif 
 }
 
 void Camera::addOrient(float pitchdif, float yawdif) {
