@@ -39,8 +39,8 @@ void Camera::moveDirection(float forward, float sideways, float vertical) {
 
 void Camera::addOrient(float pitchdif, float yawdif) {
     pitch += pitchdif;
-    if (pitch > M_2_PI) pitch = M_2_PI;
-    else if (pitch < - M_2_PI) pitch = -M_2_PI;
+    if (pitch > M_PI_2) pitch = M_PI_2;
+    else if (pitch < - M_PI_2) pitch = -M_PI_2;
 
     yaw += yawdif;
 

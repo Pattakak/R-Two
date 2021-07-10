@@ -7,7 +7,7 @@
 #include <sys/time.h>
 #include <SDL2/SDL.h>
 #include <glm/glm.hpp>
-#include "pixelBuffer.hpp"
+#include "window.h"
 #include "opencl.hpp"
 #include "camera.h"
 #include "clmacros.h"
@@ -17,9 +17,6 @@ using namespace cl;
 
 using std::vector;
 
-// Window dimensions
-static const int WINDOW_WIDTH = 1280;
-static const int WINDOW_HEIGHT = 720;
 
 CommandQueue queue;
 Kernel kernel;
@@ -27,6 +24,8 @@ Context context;
 Program program;
 Buffer cl_frame;
 Buffer cl_pixels;
+
+bool keys_pressed[KEY_NUM_KEYS];
 
 void pickPlatform(Platform& platform, const std::vector<Platform>& platforms){
     
@@ -159,7 +158,7 @@ int main(int argc, char **argv) {
     // Create a renderer (accelerated and in sync with the display refresh rate)
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);    
 
-    PixelBuffer pixelBuffer = PixelBuffer(WINDOW_WIDTH, WINDOW_HEIGHT);
+    Window pixelBuffer = Window(WINDOW_WIDTH, WINDOW_HEIGHT);
     
     SDL_Texture * texture = SDL_CreateTexture(renderer,
             pixelBuffer.pixelFormat, SDL_TEXTUREACCESS_STREAMING, pixelBuffer.width, pixelBuffer.height);
@@ -200,6 +199,11 @@ int main(int argc, char **argv) {
     init_ms = timestamp.tv_sec * 1000000 + timestamp.tv_usec;
     msi = init_ms;
 
+    // Keys initialization
+    for (int i = 0; i < (int) KEY_NUM_KEYS; i++) {
+        keys_pressed[i] = false;
+    }
+
     
     bool mousedown = false;
 
@@ -222,9 +226,22 @@ int main(int argc, char **argv) {
                 } else if (strcmp(key, "Space") == 0) {
                     // Signal next blend cycle
                     frameCount = 0;
-                } else if (strcmp(key, "w") == 0) {
-                    printf("WWWW\n");
+                } else if (strcmp(key, "W") == 0) {
+                    keys_pressed[KEY_W] = true;
+                } else if (strcmp(key, "A") == 0) {
+                    keys_pressed[KEY_A] = true;
+                } else if (strcmp(key, "S") == 0) {
+                    keys_pressed[KEY_S] = true;
+                } else if (strcmp(key, "D") == 0) {
+                    keys_pressed[KEY_D] = true;
+                } else if (strcmp(key, "Shift") == 0) {
+                    keys_pressed[KEY_SHIFT] = true;
+                    printf("Shift\n");
                 }
+                break;
+
+                case SDL_KEYUP:
+                printf("Key up\n");
                 break;
 
                 case SDL_MOUSEMOTION: {
