@@ -31,8 +31,9 @@ typedef struct ray {
 } Ray;
 
 typedef struct Sphere {
-    float3 pos;
-    float  radius;
+	float3 pos;
+	float3 albedo;
+	float  radius;
 } Sphere;
 
 typedef struct Plane {
@@ -42,21 +43,16 @@ typedef struct Plane {
 } Plane;
 
 
-Ray createCamRay(float2 uv, float3 camPos, float3 camDir, float3 camUp, float3 camRight) {
-    Ray ray;
-    ray.pos = camPos;
 
-    // uv.y is subtracted since the y coordinate specifies that down in screen space is a positive
+Ray createCamRay(float2 uv, float3 camPos, float3 camDir, float3 camUp, float3 camRight) {
+	Ray ray;
+	ray.pos = camPos;
     ray.dir = normalize((float3)(camDir.x + uv.x * camRight.x - uv.y * camUp.x, 
                                 camDir.y + uv.x * camRight.y - uv.y * camUp.y,
                                 camDir.z + uv.x * camRight.z - uv.y * camUp.z));
-
-
-
-    ray.energy = (float3)(0.0f,0.0f,0.0f);
-    return ray;
+	ray.energy = (float3) (1.0f, 1.0f, 1.0f);
+	return ray;
 }
-
 
 float intersectSphere(const Ray *ray, Sphere sphere) {
     // line-sphere intersection: 0, 1, or 2 intersections
@@ -86,42 +82,56 @@ float intersectPlane(const Ray *ray, Plane *plane) {
     return dot(plane->point, plane->normal) / d_dot_n;
 }
 
-void intersectScene(Ray *ray, float3 background_color) {
-    Sphere sphere;
-    sphere.pos = (float3)(0.0f,1.0f,-2.0f);
-    sphere.radius = 0.5f;
+void intersectScene(Ray *ray) {
+	Sphere sphere;
+	sphere.pos = (float3)(0.5f, 0.0f, -2.0f);
+	sphere.radius = 0.5f;
+	sphere.albedo = (float3)(0.259f, 0.784f, 0.96f);
 
-    Plane plane;
-    plane.point = (float3)(0.0f, 0.0f, -3.0f);
-    plane.normal = (float3)(0.0, 0.714f, 0.714f);
-    plane.energy = (float3)(1.0f, 1.0f, 1.0f);
+	Sphere sphere1;
+	sphere1.pos = (float3)(-0.5f, 0.0f, -2.0f);
+	sphere1.radius = 0.5f;
+	sphere1.albedo = (float3)(1.0f, 0.0f, 0.0f);
 
-    float3 hitPos, normal;
-    float t, hitDist = MAXFLOAT, epsilon = 0.000001f;
+	Sphere sphere2;
+	sphere2.pos = (float3)(0.0f, -100.5f, 0.0f);
+	sphere2.radius = 100.0f;
+	sphere2.albedo = (float3)(0.0f, 0.3f, 0.0f);
 
-    ray->energy = background_color;
+	float3 hitPos, normal;
+	float t, hitDist = MAXFLOAT, epsilon = 0.000001f;
 
-    // if ((t = intersectPlane(ray, &plane)) < hitDist) {
-    //     hitPos = ray->pos + t * ray->dir;
-    //     normal = plane.normal;
-    //     hitPos += epsilon * normal;
-    //     ray->energy = plane.energy ;
-    //     hitDist = t;
-    // }
+	// default color
+	//ray->energy = ray->dir;
 
-    if ((t = intersectSphere(ray, sphere)) < hitDist) {
-        hitPos = ray->pos + t*ray->dir;
-        normal = normalize(hitPos - sphere.pos);
-        hitPos += epsilon*normal;
-        ray->energy = normal;
-        hitDist = t;
-    }
+	if ((t = intersectSphere(ray, sphere)) < hitDist) {
+		hitPos = ray->pos + t*ray->dir;
+		normal = normalize(hitPos - sphere.pos);
+		hitPos += epsilon*normal;
+		ray->energy *= sphere.albedo;
+		hitDist = t;
+	}
+
+	if ((t = intersectSphere(ray, sphere1)) < hitDist) {
+		hitPos = ray->pos + t * ray->dir;
+		normal = normalize(hitPos - sphere1.pos);
+		hitPos += epsilon * normal;
+		ray->energy *= sphere1.albedo;
+		hitDist = t;
+	}
+
+	if ((t = intersectSphere(ray, sphere2)) < hitDist) {
+		hitPos = ray->pos + t * ray->dir;
+		normal = normalize(hitPos - sphere2.pos);
+		hitPos += epsilon * normal;
+		ray->energy *= sphere2.albedo;
+		hitDist = t;
+	}
 }
 
 float4 traceRay(Ray *ray, float3 background_color) {
-
-    intersectScene(ray, background_color);
-    return (float4)(ray->energy, 1.0f);
+	intersectScene(ray);
+	return (float4)(ray->energy, 1.0f);
 }
 
 __kernel void render_kernel(__global float4 *frame, __global uint *pixels, int width, int height, unsigned long frameCount, float3 camDir, float3 camRight, float3 camUp, float3 camPos) {
@@ -136,7 +146,7 @@ __kernel void render_kernel(__global float4 *frame, __global uint *pixels, int w
     Ray camRay = createCamRay(uv, camPos, camDir, camRight, camUp);
 
     // trace
-    float4 result = traceRay(&camRay, background_color)    ;
+    float4 result = traceRay(&camRay, background_color);
     
     if (frameCount <= 0) {
         // clear running average
