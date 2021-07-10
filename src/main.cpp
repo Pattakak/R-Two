@@ -8,7 +8,11 @@
 #include <SDL2/SDL.h>
 #include <glm/glm.hpp>
 #include "pixelBuffer.hpp"
-#include "opencl.hpp"
+#ifdef __APPLE__
+    #include "../include/opencl.hpp"
+#else
+    #include "opencl.hpp"
+#endif
 #include "camera.h"
 #include "clmacros.h"
 
