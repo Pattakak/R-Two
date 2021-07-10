@@ -44,12 +44,12 @@ typedef struct Plane {
 
 
 
-Ray createCamRay(float2 uv, float3 camPos, float3 camDir, float3 camUp, float3 camRight) {
+Ray createCamRay(float2 uv, float3 camPos, float3 camDir, float3 camRight, float3 camUp) {
 	Ray ray;
 	ray.pos = camPos;
-    ray.dir = normalize((float3)(camDir.x + uv.x * camRight.x - uv.y * camUp.x, 
-                                camDir.y + uv.x * camRight.y - uv.y * camUp.y,
-                                camDir.z + uv.x * camRight.z - uv.y * camUp.z));
+    ray.dir = normalize((float3)(camDir.x + uv.x * camRight.x + uv.y * camUp.x, 
+                                camDir.y + uv.x * camRight.y + uv.y * camUp.y,
+                                camDir.z + uv.x * camRight.z + uv.y * camUp.z));
 	ray.energy = (float3) (1.0f, 1.0f, 1.0f);
 	return ray;
 }
