@@ -32,6 +32,7 @@ typedef struct ray {
 
 typedef struct Sphere {
 	float3 pos;
+	float3 albedo;
 	float  radius;
 } Sphere;
 
@@ -42,14 +43,23 @@ typedef struct Plane {
 } Plane;
 
 
-Ray createCamRay(float2 uv, float3 camPos, float3 camDir) {
+Ray createCamRay(float2 uv, float3 camPos, float3 lookAt, float3 camUp, float fov, float width, float height) {
 	Ray ray;
 	ray.pos = camPos;
-	ray.dir = normalize((float3)(uv.x, uv.y, -1.0f)); //assumption for now
-	ray.energy = (float3)(0.0f,0.0f,0.0f);
+	
+	float dist_to_camera_plane = width / (2.0f * tan(fov / 2.0f));
+
+	float3 camDir = normalize(lookAt - camPos);
+	float3 right = normalize(cross(camDir, camUp));
+	float3 up = cross(right, camDir);
+	float3 forward = dist_to_camera_plane * camDir;
+	float3 ray_dir  = normalize((width / 2.0f * uv.x * right) 
+					+ (height / 2.0f * uv.y * up) 
+					+ forward);
+	ray.dir = ray_dir;
+	ray.energy = (float3)(1.0f,1.0f,1.0f);
 	return ray;
 }
-
 
 float intersectSphere(const Ray *ray, Sphere sphere) {
 	// line-sphere intersection: 0, 1, or 2 intersections
@@ -79,41 +89,55 @@ float intersectPlane(const Ray *ray, Plane *plane) {
 	return dot(plane->point, plane->normal) / d_dot_n;
 }
 
-void intersectScene(Ray *ray, float3 background_color) {
+void intersectScene(Ray *ray) {
 	Sphere sphere;
-	sphere.pos = (float3)(0.0f,1.0f,-2.0f);
+	sphere.pos = (float3)(0.5f, 0.0f, -2.0f);
 	sphere.radius = 0.5f;
+	sphere.albedo = (float3)(0.259f, 0.784f, 0.96f);
 
-	Plane plane;
-	plane.point = (float3)(0.0f, 0.0f, -3.0f);
-	plane.normal = (float3)(0.0, 0.714f, 0.714f);
-	plane.energy = (float3)(1.0f, 1.0f, 1.0f);
+	Sphere sphere1;
+	sphere1.pos = (float3)(-0.5f, 0.0f, -2.0f);
+	sphere1.radius = 0.5f;
+	sphere1.albedo = (float3)(1.0f, 0.0f, 0.0f);
+
+	Sphere sphere2;
+	sphere2.pos = (float3)(0.0f, -100.5f, 0.0f);
+	sphere2.radius = 100.0f;
+	sphere2.albedo = (float3)(0.0f, 0.3f, 0.0f);
 
 	float3 hitPos, normal;
 	float t, hitDist = MAXFLOAT, epsilon = 0.000001f;
 
-	ray->energy = background_color;
-
-	// if ((t = intersectPlane(ray, &plane)) < hitDist) {
-	// 	hitPos = ray->pos + t * ray->dir;
-	// 	normal = plane.normal;
-	// 	hitPos += epsilon * normal;
-	// 	ray->energy = plane.energy ;
-	// 	hitDist = t;
-	// }
+	// default color
+	//ray->energy = ray->dir;
 
 	if ((t = intersectSphere(ray, sphere)) < hitDist) {
 		hitPos = ray->pos + t*ray->dir;
 		normal = normalize(hitPos - sphere.pos);
 		hitPos += epsilon*normal;
-		ray->energy = normal;
+		ray->energy *= sphere.albedo;
+		hitDist = t;
+	}
+
+	if ((t = intersectSphere(ray, sphere1)) < hitDist) {
+		hitPos = ray->pos + t * ray->dir;
+		normal = normalize(hitPos - sphere1.pos);
+		hitPos += epsilon * normal;
+		ray->energy *= sphere1.albedo;
+		hitDist = t;
+	}
+
+	if ((t = intersectSphere(ray, sphere2)) < hitDist) {
+		hitPos = ray->pos + t * ray->dir;
+		normal = normalize(hitPos - sphere2.pos);
+		hitPos += epsilon * normal;
+		ray->energy *= sphere2.albedo;
 		hitDist = t;
 	}
 }
 
-float4 traceRay(Ray *ray, float3 background_color) {
-
-	intersectScene(ray, background_color);
+float4 traceRay(Ray *ray) {
+	intersectScene(ray);
 	return (float4)(ray->energy, 1.0f);
 }
 
@@ -122,14 +146,17 @@ __kernel void render_kernel(__global float4 *frame, __global uint *pixels, int w
     int x_coord = work_item_id % width;
     int y_coord = work_item_id / width;
     float2 uv = (float2)((float)x_coord - 0.5f*(float)width, 0.5f*(float)height - (float)y_coord) / (float)height;
-	float3 background_color = (float3)(0.259, 0.784, 0.96);
+
 	// generate initial ray
-    float3 camPos = (float3)(0.0f, 1.0f, 0.0f);
-	float3 camDir = (float3)(0.0f, 0.0f, -1.0f);
-	Ray camRay = createCamRay(uv, camPos, camDir);
+    float3 camPos = (float3)(2.0f, 2.0f, 2.0f);
+	float3 camDir = (float3)(-1.0f, 0.0f, -3.0f);
+	float3 lookAt = (float3)(1.0f, 1.0f, 0.0f);
+	float3 camUp  = (float3)(0.0f, 1.0f, 0.0f);
+	float fov = 45.0f;
+	Ray camRay = createCamRay(uv, camPos, lookAt, camUp, fov, 1, 1);
 
 	// trace
-	float4 result = traceRay(&camRay, background_color);	
+	float4 result = traceRay(&camRay);	
 	
 	if (frameCount <= 0) {
         // clear running average
