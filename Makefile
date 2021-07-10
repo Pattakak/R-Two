@@ -22,20 +22,20 @@ all linux $(EXE): $(OBJS)
 	$(LD) $(LDFLAGS) $^ -o $(EXE) $(LIBS) 
 
 $(OBJ)/%.o: $(SRC)/%.cpp
-	$(CC) $(CXXFLAGS) -I$(SRC) -c $< -o $@
+	$(CC) $(CXXFLAGS) -c $< -o $@
 
 $(OBJ)/%.o: $(SRC)/%.c
-	$(CC) $(CXXFLAGS) -I$(SRC) -c $< -o $@
+	$(CC) $(CXXFLAGS) -c $< -o $@
 
 .PHONY: release
 $(REXE) release: $(OBJSOPT)
 	$(LD) $(LDFLAGS) $^ -o $(REXE) $(LIBS) 
 
 $(OBJ)/%-opt.o: $(SRC)/%.cpp
-	$(CC) $(RCXXFLAGS) -I$(SRC) -c $< -o $@
+	$(CC) $(RCXXFLAGS) -c $< -o $@
 
 $(OBJ)/%-opt.o: $(SRC)/%.c
-	$(CC) $(RCXXFLAGS) -I$(SRC) -c $< -o $@
+	$(CC) $(RCXXFLAGS) -c $< -o $@
 
 
 poopoo:
