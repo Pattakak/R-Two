@@ -21,38 +21,45 @@ float4 int32ToFloat4(uint color) {
 }
 
 float3 reflect(float3 I, float3 N) {
-	return I - 2.0f * dot(N, I) * N;
+    return I - 2.0f * dot(N, I) * N;
 }
 
 typedef struct ray {
-	float3 pos;
-	float3 dir;
-	float3 energy; // color 
+    float3 pos;
+    float3 dir;
+    float3 energy; // color 
 } Ray;
 
 typedef struct Sphere {
-	float3 pos;
-	float  radius;
+    float3 pos;
+    float  radius;
 } Sphere;
 
 typedef struct Plane {
-	float3 point;
-	float3 normal;
-	float3 energy;
+    float3 point;
+    float3 normal;
+    float3 energy;
 } Plane;
 
 
-Ray createCamRay(float2 uv, float3 camPos, float3 camDir) {
-	Ray ray;
-	ray.pos = camPos;
-	ray.dir = normalize((float3)(uv.x, uv.y, -1.0f)); //assumption for now
-	ray.energy = (float3)(0.0f,0.0f,0.0f);
-	return ray;
+Ray createCamRay(float2 uv, float3 camPos, float3 camDir, float3 camUp, float3 camRight) {
+    Ray ray;
+    ray.pos = camPos;
+
+    // uv.y is subtracted since the y coordinate specifies that down in screen space is a positive
+    ray.dir = normalize((float3)(camDir.x + uv.x * camRight.x - uv.y * camUp.x, 
+                                camDir.y + uv.x * camRight.y - uv.y * camUp.y,
+                                camDir.z + uv.x * camRight.z - uv.y * camUp.z));
+
+
+
+    ray.energy = (float3)(0.0f,0.0f,0.0f);
+    return ray;
 }
 
 
 float intersectSphere(const Ray *ray, Sphere sphere) {
-	// line-sphere intersection: 0, 1, or 2 intersections
+    // line-sphere intersection: 0, 1, or 2 intersections
     float3 disp = ray->pos - sphere.pos;
     float p1 = -1.0f*dot(ray->dir, disp);
     float p2sqr = p1*p1 - dot(disp, disp) + sphere.radius*sphere.radius;
@@ -63,75 +70,75 @@ float intersectSphere(const Ray *ray, Sphere sphere) {
     float p2 = sqrt(p2sqr);
     float t = p1 - p2 > 0.0f ? p1 - p2 : p1 + p2;
     if (t > 0.0f) {
-      	return t;
+          return t;
     }
-	else {
-		return MAXFLOAT;
-	}
+    else {
+        return MAXFLOAT;
+    }
 }
 
 float intersectPlane(const Ray *ray, Plane *plane) {
-	// logic taken from http://lousodrome.net/blog/light/2020/07/03/intersection-of-a-ray-and-a-plane/
-	float d_dot_n = dot(ray->dir, plane->normal);
-	if (d_dot_n <= 0.000001f) {
-		return MAXFLOAT;	// the ray and the plane are parallel
-	}
-	return dot(plane->point, plane->normal) / d_dot_n;
+    // logic taken from http://lousodrome.net/blog/light/2020/07/03/intersection-of-a-ray-and-a-plane/
+    float d_dot_n = dot(ray->dir, plane->normal);
+    if (d_dot_n <= 0.000001f) {
+        return MAXFLOAT;    // the ray and the plane are parallel
+    }
+    return dot(plane->point, plane->normal) / d_dot_n;
 }
 
 void intersectScene(Ray *ray, float3 background_color) {
-	Sphere sphere;
-	sphere.pos = (float3)(0.0f,1.0f,-2.0f);
-	sphere.radius = 0.5f;
+    Sphere sphere;
+    sphere.pos = (float3)(0.0f,1.0f,-2.0f);
+    sphere.radius = 0.5f;
 
-	Plane plane;
-	plane.point = (float3)(0.0f, 0.0f, -3.0f);
-	plane.normal = (float3)(0.0, 0.714f, 0.714f);
-	plane.energy = (float3)(1.0f, 1.0f, 1.0f);
+    Plane plane;
+    plane.point = (float3)(0.0f, 0.0f, -3.0f);
+    plane.normal = (float3)(0.0, 0.714f, 0.714f);
+    plane.energy = (float3)(1.0f, 1.0f, 1.0f);
 
-	float3 hitPos, normal;
-	float t, hitDist = MAXFLOAT, epsilon = 0.000001f;
+    float3 hitPos, normal;
+    float t, hitDist = MAXFLOAT, epsilon = 0.000001f;
 
-	ray->energy = background_color;
+    ray->energy = background_color;
 
-	// if ((t = intersectPlane(ray, &plane)) < hitDist) {
-	// 	hitPos = ray->pos + t * ray->dir;
-	// 	normal = plane.normal;
-	// 	hitPos += epsilon * normal;
-	// 	ray->energy = plane.energy ;
-	// 	hitDist = t;
-	// }
+    // if ((t = intersectPlane(ray, &plane)) < hitDist) {
+    //     hitPos = ray->pos + t * ray->dir;
+    //     normal = plane.normal;
+    //     hitPos += epsilon * normal;
+    //     ray->energy = plane.energy ;
+    //     hitDist = t;
+    // }
 
-	if ((t = intersectSphere(ray, sphere)) < hitDist) {
-		hitPos = ray->pos + t*ray->dir;
-		normal = normalize(hitPos - sphere.pos);
-		hitPos += epsilon*normal;
-		ray->energy = normal;
-		hitDist = t;
-	}
+    if ((t = intersectSphere(ray, sphere)) < hitDist) {
+        hitPos = ray->pos + t*ray->dir;
+        normal = normalize(hitPos - sphere.pos);
+        hitPos += epsilon*normal;
+        ray->energy = normal;
+        hitDist = t;
+    }
 }
 
 float4 traceRay(Ray *ray, float3 background_color) {
 
-	intersectScene(ray, background_color);
-	return (float4)(ray->energy, 1.0f);
+    intersectScene(ray, background_color);
+    return (float4)(ray->energy, 1.0f);
 }
 
-__kernel void render_kernel(__global float4 *frame, __global uint *pixels, int width, int height, unsigned long frameCount) {
+__kernel void render_kernel(__global float4 *frame, __global uint *pixels, int width, int height, unsigned long frameCount, float3 camDir, float3 camRight, float3 camUp, float3 camPos) {
     const int work_item_id = get_global_id(0);
     int x_coord = work_item_id % width;
     int y_coord = work_item_id / width;
     float2 uv = (float2)((float)x_coord - 0.5f*(float)width, 0.5f*(float)height - (float)y_coord) / (float)height;
-	float3 background_color = (float3)(0.259, 0.784, 0.96);
-	// generate initial ray
-    float3 camPos = (float3)(0.0f, 1.0f, 0.0f);
-	float3 camDir = (float3)(0.0f, 0.0f, -1.0f);
-	Ray camRay = createCamRay(uv, camPos, camDir);
+    float3 background_color = (float3)(0.259, 0.784, 0.96);
+    // generate initial ray
+    //camPos = (float3)(0.0f, 1.0f, 0.0f);
+    //camDir = (float3)(0.0f, 0.0f, -1.0f);
+    Ray camRay = createCamRay(uv, camPos, camDir, camRight, camUp);
 
-	// trace
-	float4 result = traceRay(&camRay, background_color);	
-	
-	if (frameCount <= 0) {
+    // trace
+    float4 result = traceRay(&camRay, background_color)    ;
+    
+    if (frameCount <= 0) {
         // clear running average
         frame[work_item_id] = (float4)(0.0f,0.0f,0.0f,0.0f);
     }

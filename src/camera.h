@@ -6,7 +6,7 @@
 
 // Default fov, 90 deg
 #define CAM_DEFAULT_FOV 90.0f
-#define CAM_SENSITIVITY (.3f / 180.0f * M_PI)
+#define CAM_SENSITIVITY (.1f / 180.0f * M_PI)
 
 using namespace glm;
 

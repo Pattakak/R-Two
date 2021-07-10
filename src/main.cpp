@@ -10,6 +10,7 @@
 #include "pixelBuffer.hpp"
 #include "opencl.hpp"
 #include "camera.h"
+#include "clmacros.h"
 
 using namespace std;
 using namespace cl;
@@ -174,13 +175,19 @@ int main(int argc, char **argv) {
 
     unsigned long frameCount = 0;
 
+    // Camera to link to program, and a mousedown functionality that lets you capture the mouse
+    Camera cam = Camera(0.0f, 0.0f, 0.0f, 0.0f, -3.1415f / 2.0f);
 
     // specify OpenCL kernel arguments
-    kernel.setArg(0, cl_frame);
-    kernel.setArg(1, cl_pixels);
-    kernel.setArg(2, WINDOW_WIDTH);
-    kernel.setArg(3, WINDOW_HEIGHT);
-    kernel.setArg(4, frameCount);
+    kernel.setArg(CL_INPUT_FRAME, cl_frame);
+    kernel.setArg(CL_INPUT_PIXELS, cl_pixels);
+    kernel.setArg(CL_INPUT_WIDTH, WINDOW_WIDTH);
+    kernel.setArg(CL_INPUT_HEIGHT, WINDOW_HEIGHT);
+    kernel.setArg(CL_INPUT_FRAMECOUNT, frameCount);
+    kernel.setArg(CL_INPUT_CAM_DIR, cam.dir);
+    kernel.setArg(CL_INPUT_CAM_RIGHT, cam.right);
+    kernel.setArg(CL_INPUT_CAM_UP, cam.up);
+    kernel.setArg(CL_INPUT_CAM_POS, cam.pos);
 
     std::size_t global_work_size = WINDOW_WIDTH * WINDOW_HEIGHT;
     std::size_t local_work_size = 64;
@@ -193,8 +200,6 @@ int main(int argc, char **argv) {
     init_ms = timestamp.tv_sec * 1000000 + timestamp.tv_usec;
     msi = init_ms;
 
-    // Camera to link to program, and a mousedown functionality that lets you capture the mouse
-    Camera cam = Camera();
     
     bool mousedown = false;
 
@@ -226,6 +231,10 @@ int main(int argc, char **argv) {
                     int mouse_y = event.motion.yrel;
                     //printf("%d %d\n", mouse_x, mouse_y);
                     cam.addOrient(-CAM_SENSITIVITY * mouse_y, CAM_SENSITIVITY * mouse_x);
+                    kernel.setArg(CL_INPUT_CAM_UP, cam.up);
+                    kernel.setArg(CL_INPUT_CAM_RIGHT, cam.right);
+                    kernel.setArg(CL_INPUT_CAM_DIR, cam.dir);
+                    frameCount = 0;
                 }
                 break;
                 }
