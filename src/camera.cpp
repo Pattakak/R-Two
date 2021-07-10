@@ -31,12 +31,21 @@ void Camera::updateDirection() {
     up = cross(right, dir); 
 }
 
+void Camera::moveDirection(float forward, float sideways, float vertical) {
+    pos.x += forward * cos(yaw) + sideways * sin(yaw);
+    pos.z += forward * sin(yaw) - sideways * cos(yaw);
+    pos.y += vertical;
+}
+
 void Camera::addOrient(float pitchdif, float yawdif) {
-    //printf("%f %f\n", pitch, yaw);
     pitch += pitchdif;
+    if (pitch > M_2_PI) pitch = M_2_PI;
+    else if (pitch < - M_2_PI) pitch = -M_2_PI;
+
     yaw += yawdif;
+
     updateDirection();
-    #if 1
+    #if 0
     printf("(p, y) = %f %f\n", this->pitch * 180.0f / M_PI, this->yaw * 180.0f / M_PI);
     printf("Dir: %f %f %f\n", dir.x, dir.y, dir.z);
     printf("Up : %f %f %f\n", up.x, up.y, up.z);

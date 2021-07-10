@@ -6,7 +6,10 @@
 
 // Default fov, 90 deg
 #define CAM_DEFAULT_FOV 90.0f
-#define CAM_SENSITIVITY (.1f / 180.0f * M_PI)
+// Camera sensitivity, radians per pixel of mouse movement
+#define CAM_SENSITIVITY (.1f / 180.0f * M_PI) 
+// Camera speed, meters per second
+#define CAM_SPEED .01f
 
 using namespace glm;
 
@@ -26,6 +29,7 @@ class Camera {
     Camera(float x, float y, float z, float pitch, float yaw, float roll, float fov);
     void updateDirection();
     void addOrient(float pitchdif, float yawdif);
+    void moveDirection(float foward, float side, float up);
 
     vec3 pos;  
     vec3 dir;

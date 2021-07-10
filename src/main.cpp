@@ -37,7 +37,7 @@ void pickPlatform(Platform& platform, const std::vector<Platform>& platforms){
         cin >> input;
 
         // handle incorrect user input
-        while (input < 1 || input > platforms.size()){
+        while ((unsigned) input < 1 || (unsigned) input > platforms.size()){
             cin.clear(); //clear errors/bad flags on cin
             cin.ignore(cin.rdbuf()->in_avail(), '\n'); // ignores exact number of chars in cin buffer
             cout << "No such option. Choose an OpenCL platform: ";
@@ -56,7 +56,7 @@ void pickDevice(Device& device, const std::vector<Device>& devices){
         cin >> input;
 
         // handle incorrect user input
-        while (input < 1 || input > devices.size()){
+        while ((unsigned) input < 1 || (unsigned) input > devices.size()){
             cin.clear(); //clear errors/bad flags on cin
             cin.ignore(cin.rdbuf()->in_avail(), '\n'); // ignores exact number of chars in cin buffer
             cout << "No such option. Choose an OpenCL device: ";
@@ -86,7 +86,7 @@ void initOpenCL()
     std::vector<Platform> platforms;
     Platform::get(&platforms);
     cout << "Available OpenCL platforms : " << endl << endl;
-    for (int i = 0; i < platforms.size(); i++)
+    for (unsigned i = 0; i < platforms.size(); i++)
         cout << "\t" << i + 1 << ": " << platforms[i].getInfo<CL_PLATFORM_NAME>() << endl;
 
     // Pick one platform
@@ -99,7 +99,7 @@ void initOpenCL()
     platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
 
     cout << "Available OpenCL devices on this platform: " << endl << endl;
-    for (int i = 0; i < devices.size(); i++){
+    for (unsigned i = 0; i < devices.size(); i++){
         cout << "\t" << i + 1 << ": " << devices[i].getInfo<CL_DEVICE_NAME>() << endl;
         cout << "\t\tMax compute units: " << devices[i].getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>() << endl;
         cout << "\t\tMax work group size: " << devices[i].getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>() << endl << endl;
@@ -222,6 +222,8 @@ int main(int argc, char **argv) {
                 } else if (strcmp(key, "Space") == 0) {
                     // Signal next blend cycle
                     frameCount = 0;
+                } else if (strcmp(key, "w") == 0) {
+                    printf("WWWW\n");
                 }
                 break;
 
@@ -258,7 +260,7 @@ int main(int argc, char **argv) {
 
         // Draw
         // launch the kernel
-        queue.enqueueNDRangeKernel(kernel, NULL, global_work_size, local_work_size);
+        queue.enqueueNDRangeKernel(kernel, 0, global_work_size, local_work_size);
         queue.finish();
 
         // read and copy OpenCL output to pixel buffer
@@ -272,8 +274,8 @@ int main(int argc, char **argv) {
         gettimeofday(&timestamp, NULL);
         msf = timestamp.tv_sec * 1000000 + timestamp.tv_usec;
         long long tdiff = msf - msi;
-#ifdef RTWO_DEBUG
-        //printf("\r%10f FPS", (double) 1000000 / (double) tdiff); 
+#if 1
+        printf("\r%10f FPS", (double) 1000000 / (double) tdiff); 
 #endif
         msi = msf;
 
@@ -284,6 +286,7 @@ int main(int argc, char **argv) {
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
+    printf("\n");
 
     return 0;
 }
