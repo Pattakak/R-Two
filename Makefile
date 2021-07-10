@@ -43,8 +43,7 @@ $(OBJ)/%-opt.o: $(SRC)/%.c
 linux all: $(EXE)
 
 .PHONY: poopoo peepee
-poopoo: CXXFLAGS += -framework OpenCL 
-poopoo: LIBOPENCL := 
+poopoo: LIBOPENCL := -framework OpenCL
 poopoo: $(EXE)
 
 peepee: LIBS += -lOpenCL 
