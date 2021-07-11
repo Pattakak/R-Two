@@ -84,6 +84,10 @@ void printErrorLog(const Program& program, const Device& device){
     exit(1);
 }
 
+cl_float3 glmVec3ToCl(glm::vec3 vec) {
+    return (cl_float3){{vec.x, vec.y, vec.z}};
+}
+
 void initOpenCL()
 {
     // Get all available OpenCL platforms (e.g. AMD OpenCL, Nvidia CUDA, Intel OpenCL)
@@ -189,10 +193,10 @@ int main(int argc, char **argv) {
     kernel.setArg(CL_INPUT_WIDTH, WINDOW_WIDTH);
     kernel.setArg(CL_INPUT_HEIGHT, WINDOW_HEIGHT);
     kernel.setArg(CL_INPUT_FRAMECOUNT, frameCount);
-    kernel.setArg(CL_INPUT_CAM_DIR, cam.dir);
-    kernel.setArg(CL_INPUT_CAM_RIGHT, cam.right);
-    kernel.setArg(CL_INPUT_CAM_UP, cam.up);
-    kernel.setArg(CL_INPUT_CAM_POS, cam.pos);
+    kernel.setArg(CL_INPUT_CAM_DIR, glmVec3ToCl(cam.dir));
+    kernel.setArg(CL_INPUT_CAM_RIGHT, glmVec3ToCl(cam.right));
+    kernel.setArg(CL_INPUT_CAM_UP, glmVec3ToCl(cam.up));
+    kernel.setArg(CL_INPUT_CAM_POS, glmVec3ToCl(cam.pos));
 
     std::size_t global_work_size = WINDOW_WIDTH * WINDOW_HEIGHT;
     std::size_t local_work_size = 64;
@@ -240,9 +244,9 @@ int main(int argc, char **argv) {
                     int mouse_y = event.motion.yrel;
                     //printf("%d %d\n", mouse_x, mouse_y);
                     cam.addOrient(-CAM_SENSITIVITY * mouse_y, CAM_SENSITIVITY * mouse_x);
-                    kernel.setArg(CL_INPUT_CAM_UP, cam.up);
-                    kernel.setArg(CL_INPUT_CAM_RIGHT, cam.right);
-                    kernel.setArg(CL_INPUT_CAM_DIR, cam.dir);
+                    kernel.setArg(CL_INPUT_CAM_UP, glmVec3ToCl(cam.up));
+                    kernel.setArg(CL_INPUT_CAM_RIGHT, glmVec3ToCl(cam.right));
+                    kernel.setArg(CL_INPUT_CAM_DIR, glmVec3ToCl(cam.dir));
                     frameCount = 0;
                 }
                 break;
@@ -289,11 +293,11 @@ int main(int argc, char **argv) {
         if (moved) {
             cam.moveDirection(forward, sideways, vertical);
             frameCount = 0;
-            kernel.setArg(CL_INPUT_CAM_POS, cam.pos);
+            kernel.setArg(CL_INPUT_CAM_POS, glmVec3ToCl(cam.pos));
         }
 
 
-        kernel.setArg(4, frameCount++);
+        kernel.setArg(CL_INPUT_FRAMECOUNT, frameCount++);
 
         // Clear screen
         SDL_UpdateTexture(texture, NULL, pixelBuffer.pixels,  pixelBuffer.width * sizeof(cl_uint));
