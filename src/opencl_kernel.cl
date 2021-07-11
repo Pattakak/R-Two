@@ -85,7 +85,6 @@ float3 sampleHemisphere(float3 normal, unsigned long frameCount) {
     return mul(getTangentSpace(normal), tangentSpaceDir);
 }
 
-
 Ray createCamRay(float2 uv, float3 camPos, float3 camDir, float3 camRight, float3 camUp) {
 	Ray ray;
 	ray.pos = camPos;
@@ -132,15 +131,15 @@ HitInfo intersectScene(Ray *ray) {
 	Sphere spheres[3];
 	spheres[0].pos = (float3)(0.5f, 0.0f, -2.0f);
 	spheres[0].radius = 0.5f;
-	spheres[0].albedo = (float3)(0.259f, 0.784f, 0.96f);
+	spheres[0].albedo = (float3)(1.0f, 0.5f, 0.5f);
 
 	spheres[1].pos = (float3)(-0.5f, 0.0f, -2.0f);
 	spheres[1].radius = 0.5f;
-	spheres[1].albedo = (float3)(1.0f, 0.2f, 0.2f);
+	spheres[1].albedo = (float3)(0.5f, 0.5f, 1.0f);
 
 	spheres[2].pos = (float3)(0.0f, -100.5f, 0.0f);
 	spheres[2].radius = 100.0f;
-	spheres[2].albedo = (float3)(0.5f, 0.7f, 0.5f);
+	spheres[2].albedo = (float3)(0.2f, 1.0f, 0.2f);
 
 	float3 hitPos, hitNormal;
 	float t, hitDist = MAXFLOAT;
@@ -168,7 +167,7 @@ void updateRay(Ray *ray, HitInfo *hit, unsigned long frameCount) {
     
     // simple albedo brdf
     float3 outDir = sampleHemisphere(hit->normal, frameCount);
-    ray->energy *= 2 * hit->albedo * dot(hit->normal, outDir);
+    ray->energy *= hit->albedo * fabs(dot(hit->normal, outDir));
 
     ray->dir = outDir;
 }
@@ -176,19 +175,18 @@ void updateRay(Ray *ray, HitInfo *hit, unsigned long frameCount) {
 float4 traceRay(Ray *ray, unsigned long frameCount) {
 	const int RECURSION_DEPTH = 4;
 	float4 bg_color = (float4)(1.0f, 1.0f, 1.0f, 1.0f);
+
     for (int i = 0; i < RECURSION_DEPTH; i++) {
         HitInfo info = intersectScene(ray);
-		if (i == RECURSION_DEPTH - 1) {
-			if (info.hitSomething == false) {
-				return (float4)(ray->energy, 1.0f) * bg_color * 2;
-			} else {
-				updateRay(ray, &info, frameCount);
-				return (float4)(ray->energy, 1.0f);
-			}
+		if (info.hitSomething == false) {
+			// if this is the primary ray, ray->energy should be (1,1,1).
+			return (float4)(ray->energy, 1.0f) * bg_color;
+		} else {
+			updateRay(ray, &info, frameCount);
 		}
     }
 
-	return bg_color;
+	return (float4)(ray->energy, 1.0f);
 }
 
 __kernel void render_kernel(__global float4 *frame, __global uint *pixels, int width, int height, unsigned long frameCount, float3 camDir, float3 camRight, float3 camUp, float3 camPos) {
