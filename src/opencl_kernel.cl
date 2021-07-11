@@ -134,7 +134,7 @@ void intersectScene(Ray *ray, unsigned long frameCount) {
 		hitPos = ray->pos + t * ray->dir;
 		normal = normalize(hitPos - sphere1.pos);
 		hitPos += epsilon * normal;
-		ray->energy *= sphere1.albedo;
+		ray->energy *= sphere1.albedo * fabs(dot(normal, ray->dir));
 		hitDist = t;
 		hitSomething = true;
 	}
@@ -152,7 +152,7 @@ void intersectScene(Ray *ray, unsigned long frameCount) {
 		hitPos = ray->pos + t * ray->dir;
 		normal = plane.normal;
 		hitPos += epsilon * normal;
-		ray->energy *= plane.albedo;
+		ray->energy *= plane.albedo * fabs(dot(plane.normal, ray->dir));
 		hitDist = t;
 		hitSomething = true;
 	}
@@ -174,13 +174,15 @@ __kernel void render_kernel(__global float4 *frame, __global uint *pixels, int w
     int y_coord = work_item_id / width;
     float2 uv = (float2)((float)x_coord - 0.5f*(float)width, 0.5f*(float)height - (float)y_coord) / (float)height;
 
-    // generate initial ray
-    //camPos = (float3)(0.0f, 1.0f, 0.0f);
-    //camDir = (float3)(0.0f, 0.0f, -1.0f);
-    Ray camRay = createCamRay(uv, camPos, camDir, camRight, camUp);
-
-    // trace
-    float4 result = traceRay(&camRay, frameCount);
+	// Anti-aliasing
+	const int num_samples_MSAA = 4;
+	float4 result = (float4)(0.0f, 0.0f, 0.0f, 0.0f);
+	for (int i = 0; i < num_samples_MSAA; ++i) {
+		uv += (float2) (i * 0.25f / width, i * 0.25f / height);
+    	Ray camRay = createCamRay(uv, camPos, camDir, camRight, camUp);
+		result += traceRay(&camRay, frameCount);
+	}
+	result /= num_samples_MSAA;
     
     if (frameCount <= 0) {
         // clear running average
