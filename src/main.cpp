@@ -242,10 +242,7 @@ int main(int argc, char **argv) {
                 key = SDL_GetKeyName(event.key.keysym.sym);
                 if (strcmp(key, "Escape") == 0) {
                     running = false;
-                } else if (strcmp(key, "Space") == 0) {
-                    // Signal next blend cycle
-                    frameCount = 0;
-                } 
+                }
                 break;
 
                 case SDL_KEYUP:
@@ -295,11 +292,11 @@ int main(int argc, char **argv) {
             sideways -= CAM_SPEED * (float) tdiff / 1000.0f;
             moved = true;
         }
-        if (keystates[SDL_SCANCODE_LSHIFT]) {
+        if (keystates[SDL_SCANCODE_SPACE]) {
             vertical += CAM_SPEED * (float) tdiff / 1000.0f;
             moved = true;
         }
-        if (keystates[SDL_SCANCODE_RSHIFT]) {
+        if (keystates[SDL_SCANCODE_LSHIFT]) {
             vertical  -= CAM_SPEED * (float) tdiff / 1000.0f;
             moved = true;
         }
