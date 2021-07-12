@@ -9,7 +9,7 @@
 // Camera sensitivity, radians per pixel of mouse movement
 #define CAM_SENSITIVITY (.1f / 180.0f * M_PI) 
 // Camera speed, meters per second
-#define CAM_SPEED .01f
+#define CAM_SPEED .002f
 
 using namespace glm;
 
