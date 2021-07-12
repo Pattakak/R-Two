@@ -147,7 +147,7 @@ float intersectPlane(const Ray *ray, const Plane *plane) {
 
 HitInfo intersectScene(Ray *ray) {
 	Sphere spheres[8];
-	spheres[0].pos = (float3)(0.5f, 0.0f, -2.0f);	// inner sphere 1
+	spheres[0].pos = (float3)(0.5f, 0.0f, -1.0f);	// inner sphere 1
 	spheres[0].radius = 0.5f;
 	spheres[0].albedo = (float3)(1.0f, 0.5f, 0.5f);
 
@@ -171,12 +171,12 @@ HitInfo intersectScene(Ray *ray) {
 	spheres[5].radius = 100.0f;
 	spheres[5].albedo = (float3) (0.81, 0.68, 0.40);
 
-	spheres[6].pos = (float3)(0.0f, 104.0f, -2.0f);	// top
+	spheres[6].pos = (float3)(0.0f, 103.0f, 0.0f);	// top
 	spheres[6].radius = 100.0f;
 	spheres[6].albedo = (float3)(0.2f, 0.2f, 1.0f);
 
 	spheres[7].pos = (float3)(0.0f, 4.0f, -2.0f);	// light
-	spheres[7].radius = 1.0f;
+	spheres[7].radius = 1.5f;
 	spheres[7].albedo = (float3)(12, 12, 12);
 
 	float3 hitPos, hitNormal;
@@ -211,7 +211,7 @@ void updateRay(Ray *ray, HitInfo *hit, unsigned long frameCount) {
 }
 
 float4 traceRay(Ray *ray, unsigned long frameCount) {
-	const int RECURSION_DEPTH = 3;
+	const int RECURSION_DEPTH = 4;
 	float4 bg_color = (float4)(1.0f, 1.0f, 1.0f, 1.0f);
 
     for (int i = 0; i < RECURSION_DEPTH; i++) {
