@@ -3,6 +3,24 @@ float noise(float3 seed) {
     return fract(sin(dot(seed, (float3)(1323232.9898f,7843432.233f, 23872.23232f)) * 4375348.5453123f), &floor);
 }
 
+static float get_random(unsigned int *seed0, unsigned int *seed1) {
+
+	/* hash the seeds using bitwise AND operations and bitshifts */
+	*seed0 = 36969 * ((*seed0) & 65535) + ((*seed0) >> 16);
+	*seed1 = 18000 * ((*seed1) & 65535) + ((*seed1) >> 16);
+
+	unsigned int ires = ((*seed0) << 16) + (*seed1);
+
+	/* use union struct to convert int to float */
+	union {
+		float f;
+		unsigned int ui;
+	} res;
+
+	res.ui = (ires & 0x007fffff) | 0x40000000;  /* bitwise AND, bitwise OR */
+	return (res.f - 2.0f) / 2.0f;
+}
+
 uint float4ToInt32(float4 color) {
     uint r = (uint)(color.x * 255.99999f);
     uint g = (uint)(color.y * 255.99999f);
@@ -173,7 +191,7 @@ void updateRay(Ray *ray, HitInfo *hit, unsigned long frameCount) {
 }
 
 float4 traceRay(Ray *ray, unsigned long frameCount) {
-	const int RECURSION_DEPTH = 4;
+	const int RECURSION_DEPTH = 3;
 	float4 bg_color = (float4)(1.0f, 1.0f, 1.0f, 1.0f);
 
     for (int i = 0; i < RECURSION_DEPTH; i++) {
@@ -189,22 +207,13 @@ float4 traceRay(Ray *ray, unsigned long frameCount) {
 	return (float4)(ray->energy, 1.0f);
 }
 
-__kernel void render_kernel(__global float4 *frame, __global uint *pixels, int width, int height, unsigned long frameCount, float3 camDir, float3 camRight, float3 camUp, float3 camPos) {
+__kernel void render_kernel(__global float4 *frame, __global uint *pixels, int width, int height, unsigned long frameCount, float3 camDir, float3 camRight, float3 camUp, float3 camPos, float2 rands) {
     const int work_item_id = get_global_id(0);
     int x_coord = work_item_id % width;
     int y_coord = work_item_id / width;
-    float2 uv = (float2)((float)x_coord - 0.5f*(float)width, 0.5f*(float)height - (float)y_coord) / (float)height;
+    float2 uv = (float2)((float)(x_coord + rands.x) - 0.5f*(float)width, 0.5f*(float)height - (float)(y_coord + rands.y)) / (float)height;
 
 	// Anti-aliasing
-	// const int num_samples_MSAA = 4;
-	// float4 result = (float4)(0.0f, 0.0f, 0.0f, 0.0f);
-	// for (int i = 0; i < num_samples_MSAA; ++i) {
-	// 	uv += (float2) (i * 0.25f / width, i * 0.25f / height);
-    // 	Ray camRay = createCamRay(uv, camPos, camDir, camRight, camUp);
-	// 	result += traceRay(&camRay, frameCount);
-	// }
-	// result /= num_samples_MSAA;
-
 	Ray camRay = createCamRay(uv, camPos, camDir, camRight, camUp);
     float4 result = traceRay(&camRay, frameCount);
 

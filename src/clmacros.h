@@ -10,5 +10,6 @@
 #define CL_INPUT_CAM_RIGHT  6
 #define CL_INPUT_CAM_UP     7
 #define CL_INPUT_CAM_POS    8 
+#define CL_INPUT_RANDS      9
 
 #endif

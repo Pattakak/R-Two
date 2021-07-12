@@ -7,6 +7,8 @@
 #include <sys/time.h>
 #include <SDL2/SDL.h>
 #include <glm/glm.hpp>
+#include <random>
+
 #include "pixelBuffer.hpp"
 #ifdef __APPLE__
 #include "../include/opencl.hpp"
@@ -31,6 +33,13 @@ Buffer cl_frame;
 Buffer cl_pixels;
 
 bool keys_pressed[KEY_NUM_KEYS];
+
+static float get_random_numer() {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_real_distribution<> dis(0, 1);//uniform distribution between 0 and 1
+    return (float)(dis(gen));
+}
 
 void pickPlatform(Platform& platform, const std::vector<Platform>& platforms){
     
@@ -293,7 +302,12 @@ int main(int argc, char **argv) {
         }
 
 
-        kernel.setArg(4, frameCount++);
+        kernel.setArg(CL_INPUT_FRAMECOUNT, frameCount++);
+
+        float rand1 = get_random_numer();
+        float rand2 = get_random_numer();
+        glm::vec2 rands(rand1, rand2);
+        kernel.setArg(CL_INPUT_RANDS, rands);
 
         // Clear screen
         SDL_UpdateTexture(texture, NULL, pixelBuffer.pixels,  pixelBuffer.width * sizeof(cl_uint));
