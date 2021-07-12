@@ -146,18 +146,38 @@ float intersectPlane(const Ray *ray, const Plane *plane) {
 }
 
 HitInfo intersectScene(Ray *ray) {
-	Sphere spheres[3];
-	spheres[0].pos = (float3)(0.5f, 0.0f, -2.0f);
+	Sphere spheres[8];
+	spheres[0].pos = (float3)(0.5f, 0.0f, -2.0f);	// inner sphere 1
 	spheres[0].radius = 0.5f;
 	spheres[0].albedo = (float3)(1.0f, 0.5f, 0.5f);
 
-	spheres[1].pos = (float3)(-0.5f, 0.0f, -2.0f);
+	spheres[1].pos = (float3)(-0.5f, 0.0f, -2.0f);	// inner sphere 2
 	spheres[1].radius = 0.5f;
 	spheres[1].albedo = (float3)(0.5f, 0.5f, 1.0f);
 
-	spheres[2].pos = (float3)(0.0f, -100.5f, 0.0f);
+	spheres[2].pos = (float3)(0.0f, -100.5f, 0.0f);	// bottom
 	spheres[2].radius = 100.0f;
-	spheres[2].albedo = (float3)(0.2f, 1.0f, 0.2f);
+	spheres[2].albedo = (float3)(0.81, 0.68, 0.40);
+
+	spheres[3].pos = (float3)(102.0f, 0.0f, 0.0f);	// right
+	spheres[3].radius = 100.0f;
+	spheres[3].albedo = (float3)(0.2f, 1.0f, 0.2f);
+
+	spheres[4].pos = (float3)(-102.0f, 0.0f, 0.0f);	// left
+	spheres[4].radius = 100.0f;
+	spheres[4].albedo = (float3)(1.0f, 0.2f, 0.2f);
+
+	spheres[5].pos = (float3)(0.0f, 0.0f, -104.0f);	// back
+	spheres[5].radius = 100.0f;
+	spheres[5].albedo = (float3) (0.81, 0.68, 0.40);
+
+	spheres[6].pos = (float3)(0.0f, 104.0f, -2.0f);	// top
+	spheres[6].radius = 100.0f;
+	spheres[6].albedo = (float3)(0.2f, 0.2f, 1.0f);
+
+	spheres[7].pos = (float3)(0.0f, 4.0f, -2.0f);	// light
+	spheres[7].radius = 1.0f;
+	spheres[7].albedo = (float3)(12, 12, 12);
 
 	float3 hitPos, hitNormal;
 	float t, hitDist = MAXFLOAT;
@@ -166,7 +186,7 @@ HitInfo intersectScene(Ray *ray) {
 	bestHit.hitSomething = false;
 	
 	bestHit.distance = MAXFLOAT;
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 8; i++) {
         if ((t = intersectSphere(ray, spheres[i])) < bestHit.distance) {
             bestHit.distance = t;
             bestHit.pos = ray->pos + t*ray->dir;
@@ -201,6 +221,13 @@ float4 traceRay(Ray *ray, unsigned long frameCount) {
 			return (float4)(ray->energy, 1.0f) * bg_color;
 		} else {
 			updateRay(ray, &info, frameCount);
+			// hit an emissive object?
+			if (info.albedo.x > 1 || info.albedo.y > 1 || info.albedo.z > 1) {
+				if (i == 0) {
+					ray->energy = clamp(info.albedo, 0.0f, 1.0f);
+				}
+				break;
+			}
 		}
     }
 
