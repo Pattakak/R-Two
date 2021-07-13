@@ -1,8 +1,12 @@
 #define PI 3.141592654359f
 
-float noise(float3 seed) {
+float noise(float3 *seed) {
     float floor;
-    return fract(sin(dot(seed, (float3)(1323232.9898f,7843432.233f, 23872.23232f)) * 4375348.5453123f), &floor);
+    float result = fract(sin(dot(*seed, (float3)(1323232.9898f,7843432.233f, 23872.23232f)) * 4375348.5453123f), &floor);
+    seed->x += 2.*result;
+    seed->y += 23423.*result;
+    seed->z += -5443.*result;
+    return result;
 }
 
 static float get_random(unsigned int *seed0, unsigned int *seed1) {
@@ -93,13 +97,13 @@ Mat3 getTangentSpace(float3 normal) {
     return mat;
 }
 
-float3 sampleHemisphere(float3 normal, unsigned long frameCount) {
+float3 sampleHemisphere(float3 normal, unsigned long frameCount, float3 *seed) {
     // returns a vector uniformly sampled from the hemisphere around a given normal
     // borrowed from http://three-eyed-games.com/2018/05/12/gpu-path-tracing-in-unity-part-2/
     // uniformly sample hemisphere direction
-    float cosTheta = noise((float3)(normal.x, normal.y, frameCount));
+    float cosTheta = noise(seed);
     float sinTheta = sqrt(max(0.0f, 1.0f - cosTheta * cosTheta));
-    float phi = 2 * 3.141528 * noise(normal.yzx);
+    float phi = 2 * 3.141528 * noise(seed);
     float3 tangentSpaceDir = (float3)(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
     // transform direction to world space
     return mul(getTangentSpace(normal), tangentSpaceDir);
@@ -108,7 +112,7 @@ float3 sampleHemisphere(float3 normal, unsigned long frameCount) {
 Ray createCamRay(float2 uv, float3 camPos, float3 camDir, float3 camRight, float3 camUp) {
 	Ray ray;
     ray.pos = camPos;
-    float fovy = 90.0f / 180.0f * 3.141526f; 
+    float fovy = 60.0f / 180.0f * 3.141526f; 
     
     // Next line explaination:
     // y is from (-.5, .5), we give an outward vector with length 1, (x side is 1), and the 
@@ -165,28 +169,28 @@ HitInfo intersectScene(Ray *ray) {
 	spheres[1].albedo = (float3)(0.5f, 0.5f, 1.0f);
 
 	spheres[2].pos = (float3)(0.0f, -100.5f, 0.0f);	// bottom
-	spheres[2].radius = 0.0f;
+	spheres[2].radius = 100.0f;
 	spheres[2].albedo = (float3)(0.81, 0.68, 0.40);
 
 	spheres[3].pos = (float3)(102.0f, 0.0f, 0.0f);	// right
-	spheres[3].radius = 0.0f;
+	spheres[3].radius = 100.0f;
 	spheres[3].albedo = (float3)(0.2f, 1.0f, 0.2f);
 
 	spheres[4].pos = (float3)(-102.0f, 0.0f, 0.0f);	// left
-	spheres[4].radius = 0.0f;
+	spheres[4].radius = 100.0f;
 	spheres[4].albedo = (float3)(1.0f, 0.2f, 0.2f);
 
 	spheres[5].pos = (float3)(0.0f, 0.0f, -104.0f);	// back
-	spheres[5].radius = 0.0f;
+	spheres[5].radius = 100.0f;
 	spheres[5].albedo = (float3) (0.81, 0.68, 0.40);
 
 	spheres[6].pos = (float3)(0.0f, 104.0f, -2.0f);	// top
-	spheres[6].radius = 0.0f;
+	spheres[6].radius = 100.0f;
 	spheres[6].albedo = (float3)(0.2f, 0.2f, 1.0f);
 
 	spheres[7].pos = (float3)(0.0f, 4.0f, -2.0f);	// light
 	spheres[7].radius = 1.0f;
-	spheres[7].albedo = (float3)(14, 14, 12);
+	spheres[7].albedo = (float3)(3, 3, 3);
 
 	float3 hitPos, hitNormal;
 	float t, hitDist = MAXFLOAT;
@@ -208,19 +212,19 @@ HitInfo intersectScene(Ray *ray) {
 
 }
 
-void updateRay(Ray *ray, HitInfo *hit, unsigned long frameCount) {
-    const float epsilon = 0.000001f;
+void updateRay(Ray *ray, HitInfo *hit, unsigned long frameCount, float3 *seed) {
+    const float epsilon = 0.0001f;
     ray->pos = hit->pos + epsilon*hit->normal;
     
     // simple albedo brdf
-    float3 outDir = sampleHemisphere(hit->normal, frameCount);
-    ray->energy *= hit->albedo * fabs(dot(hit->normal, outDir));
+    float3 outDir = sampleHemisphere(hit->normal, frameCount, seed);
+    ray->energy *= 2.0f * hit->albedo * clamp(dot(hit->normal, outDir),0.0f,1.0f);
 
     ray->dir = outDir;
 }
 
-float4 traceRay(Ray *ray, unsigned long frameCount) {
-	const int RECURSION_DEPTH = 3;
+float4 traceRay(Ray *ray, unsigned long frameCount, float3 *seed) {
+	const int RECURSION_DEPTH = 10;
 	float4 bg_color = (float4)(1.0f, 1.0f, 1.0f, 1.0f);
 
     for (int i = 0; i < RECURSION_DEPTH; i++) {
@@ -229,7 +233,7 @@ float4 traceRay(Ray *ray, unsigned long frameCount) {
 			// if this is the primary ray, ray->energy should be (1,1,1).
 			return (float4)(ray->energy, 1.0f) * bg_color;
 		} else {
-			updateRay(ray, &info, frameCount);
+			updateRay(ray, &info, frameCount, seed);
 			// hit an emissive object?
 			if (info.albedo.x > 1 || info.albedo.y > 1 || info.albedo.z > 1) {
 				if (i == 0) {
@@ -251,7 +255,8 @@ __kernel void render_kernel(__global float4 *frame, __global uint *pixels, int w
 
 	// Anti-aliasing
 	Ray camRay = createCamRay(uv, camPos, camDir, camRight, camUp);
-    float4 result = traceRay(&camRay, frameCount);
+    float3 seed = (float3)(uv.x, uv.y, frameCount);
+    float4 result = traceRay(&camRay, frameCount, &seed);
 
     if (frameCount <= 0) {
         // clear running average
@@ -264,5 +269,8 @@ __kernel void render_kernel(__global float4 *frame, __global uint *pixels, int w
 
     /* write output */
     frame[work_item_id]  = result;
+    // gamma correction???
+    // float gamma = 1.2;
+    // result = pow(result, 1./gamma);
     pixels[work_item_id] = float4ToInt32(result);
 }
