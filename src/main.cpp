@@ -32,13 +32,12 @@ Program program;
 Buffer cl_frame;
 Buffer cl_pixels;
 
-bool keys_pressed[KEY_NUM_KEYS];
 
 static float get_random_numer() {
     static std::random_device rd;
     static std::mt19937 gen(rd());
     static std::uniform_real_distribution<> dis(0, 1);//uniform distribution between 0 and 1
-    return (float)(dis(gen));
+    return (float)dis(gen) - .5f;
 }
 
 void pickPlatform(Platform& platform, const std::vector<Platform>& platforms){
@@ -300,10 +299,37 @@ int main(int argc, char **argv) {
             vertical  -= CAM_SPEED * (float) tdiff / 1000.0f;
             moved = true;
         }
+        if (keystates[SDL_SCANCODE_I]) {
+            cam.addOrient(CAM_ROT_SPEED * (float) tdiff / 1000.0f, 0.0f, 0.0f);
+            moved = true;
+        }
+        if (keystates[SDL_SCANCODE_K]) {
+            cam.addOrient(-CAM_ROT_SPEED * (float) tdiff / 1000.0f, 0.0f, 0.0f);
+            moved = true;
+        }
+        if (keystates[SDL_SCANCODE_J]) {
+            cam.addOrient(0.0f, -CAM_ROT_SPEED * (float) tdiff / 1000.0f, 0.0f);
+            moved = true;
+        }
+        if (keystates[SDL_SCANCODE_L]) {
+            cam.addOrient(0.0f, CAM_ROT_SPEED * (float) tdiff / 1000.0f, 0.0f);
+            moved = true;
+        }
+        if (keystates[SDL_SCANCODE_U]) {
+            cam.addOrient(0.0f, 0.0f, CAM_ROT_SPEED * (float) tdiff / 1000.0f);
+            moved = true;
+        }
+        if (keystates[SDL_SCANCODE_P]) {
+            cam.addOrient(0.0f, 0.0f, -CAM_ROT_SPEED * (float) tdiff / 1000.0f);
+            moved = true;
+        }
         if (moved) {
             cam.moveDirection(forward, sideways, vertical);
             frameCount = 0;
             kernel.setArg(CL_INPUT_CAM_POS, glmVec3ToCl(cam.pos));
+            kernel.setArg(CL_INPUT_CAM_UP, glmVec3ToCl(cam.up));
+            kernel.setArg(CL_INPUT_CAM_RIGHT, glmVec3ToCl(cam.right));
+            kernel.setArg(CL_INPUT_CAM_DIR, glmVec3ToCl(cam.dir));
         }
 
 

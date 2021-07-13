@@ -41,12 +41,13 @@ void Camera::moveDirection(float forward, float sideways, float vertical) {
     #endif 
 }
 
-void Camera::addOrient(float pitchdif, float yawdif) {
+void Camera::addOrient(float pitchdif, float yawdif, float rolldif) {
     pitch += pitchdif;
     if (pitch > M_PI_2) pitch = M_PI_2;
     else if (pitch < - M_PI_2) pitch = -M_PI_2;
 
     yaw += yawdif;
+    roll += rolldif;
 
     updateDirection();
     #if 0

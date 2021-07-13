@@ -10,6 +10,8 @@
 #define CAM_SENSITIVITY (.1f / 180.0f * M_PI) 
 // Camera speed, meters per second
 #define CAM_SPEED .002f
+// Camera rotation speed when pressing rotation buttons, radians per second
+#define CAM_ROT_SPEED .001f 
 
 using namespace glm;
 
@@ -28,7 +30,7 @@ class Camera {
     Camera(float x, float y, float z, float pitch, float yaw);
     Camera(float x, float y, float z, float pitch, float yaw, float roll, float fov);
     void updateDirection();
-    void addOrient(float pitchdif, float yawdif);
+    void addOrient(float pitchdif, float yawdif, float rolldif = 0.0f);
     void moveDirection(float foward, float side, float up);
 
     vec3 pos;  
