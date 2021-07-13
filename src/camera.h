@@ -13,7 +13,12 @@
 #define CAM_SPEED .001f
 =======
 #define CAM_SPEED .002f
+<<<<<<< HEAD
 >>>>>>> db01a323011de70f2bff829c9ecf0c98887174f7
+=======
+// Camera rotation speed when pressing rotation buttons, radians per second
+#define CAM_ROT_SPEED .001f 
+>>>>>>> bd1bcb5dd78aa397f51bf02401c6b18964ccb2aa
 
 using namespace glm;
 
@@ -32,7 +37,7 @@ class Camera {
     Camera(float x, float y, float z, float pitch, float yaw);
     Camera(float x, float y, float z, float pitch, float yaw, float roll, float fov);
     void updateDirection();
-    void addOrient(float pitchdif, float yawdif);
+    void addOrient(float pitchdif, float yawdif, float rolldif = 0.0f);
     void moveDirection(float foward, float side, float up);
 
     vec3 pos;  

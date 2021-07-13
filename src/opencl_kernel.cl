@@ -1,3 +1,5 @@
+#define PI 3.141592654359f
+
 float noise(float3 seed) {
     float floor;
     return fract(sin(dot(seed, (float3)(1323232.9898f,7843432.233f, 23872.23232f)) * 4375348.5453123f), &floor);
@@ -105,10 +107,17 @@ float3 sampleHemisphere(float3 normal, unsigned long frameCount) {
 
 Ray createCamRay(float2 uv, float3 camPos, float3 camDir, float3 camRight, float3 camUp) {
 	Ray ray;
-	ray.pos = camPos;
-    ray.dir = normalize((float3)(camDir.x + uv.x * camRight.x + uv.y * camUp.x, 
-                                camDir.y + uv.x * camRight.y + uv.y * camUp.y,
-                                camDir.z + uv.x * camRight.z + uv.y * camUp.z));
+    ray.pos = camPos;
+    float fovy = 90.0f / 180.0f * 3.141526f; 
+    
+    // Next line explaination:
+    // y is from (-.5, .5), we give an outward vector with length 1, (x side is 1), and the 
+    // angle must be half of the fov of y, since we are looking at one side.
+    // Therefore we must satisfy tan(fovy / 2) = weight * .5
+    float weight = tan(fovy / 2) * 2;
+    ray.dir = normalize((float3) (camDir.x + (uv.x * camRight.x + uv.y * camUp.x) * weight, 
+                                  camDir.y +  (uv.x * camRight.y + uv.y * camUp.y) * weight,
+                                  camDir.z +  (uv.x * camRight.z + uv.y * camUp.z) * weight));
 	ray.energy = (float3) (1.0f, 1.0f, 1.0f);
 	return ray;
 }
@@ -156,28 +165,28 @@ HitInfo intersectScene(Ray *ray) {
 	spheres[1].albedo = (float3)(0.5f, 0.5f, 1.0f);
 
 	spheres[2].pos = (float3)(0.0f, -100.5f, 0.0f);	// bottom
-	spheres[2].radius = 100.0f;
+	spheres[2].radius = 0.0f;
 	spheres[2].albedo = (float3)(0.81, 0.68, 0.40);
 
 	spheres[3].pos = (float3)(102.0f, 0.0f, 0.0f);	// right
-	spheres[3].radius = 100.0f;
+	spheres[3].radius = 0.0f;
 	spheres[3].albedo = (float3)(0.2f, 1.0f, 0.2f);
 
 	spheres[4].pos = (float3)(-102.0f, 0.0f, 0.0f);	// left
-	spheres[4].radius = 100.0f;
+	spheres[4].radius = 0.0f;
 	spheres[4].albedo = (float3)(1.0f, 0.2f, 0.2f);
 
 	spheres[5].pos = (float3)(0.0f, 0.0f, -104.0f);	// back
-	spheres[5].radius = 100.0f;
+	spheres[5].radius = 0.0f;
 	spheres[5].albedo = (float3) (0.81, 0.68, 0.40);
 
-	spheres[6].pos = (float3)(0.0f, 103.0f, 0.0f);	// top
-	spheres[6].radius = 100.0f;
+	spheres[6].pos = (float3)(0.0f, 104.0f, -2.0f);	// top
+	spheres[6].radius = 0.0f;
 	spheres[6].albedo = (float3)(0.2f, 0.2f, 1.0f);
 
 	spheres[7].pos = (float3)(0.0f, 4.0f, -2.0f);	// light
-	spheres[7].radius = 1.5f;
-	spheres[7].albedo = (float3)(12, 12, 12);
+	spheres[7].radius = 1.0f;
+	spheres[7].albedo = (float3)(14, 14, 12);
 
 	float3 hitPos, hitNormal;
 	float t, hitDist = MAXFLOAT;
