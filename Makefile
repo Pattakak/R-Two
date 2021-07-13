@@ -30,7 +30,7 @@ $(OBJ)/%.o: $(SRC)/%.c
 
 .PHONY: release
 $(REXE) release: $(OBJSOPT)
-	$(LD) $(LDFLAGS) $^ -o $(REXE) $(LIBS) 
+	$(LD) $(LDFLAGS) $^ -o $(REXE) $(LIBS) $(LIBOPENCL)
 
 $(OBJ)/%-opt.o: $(SRC)/%.cpp
 	$(CC) $(RCXXFLAGS) -c $< -o $@

@@ -37,6 +37,7 @@ class Window {
     virtual void setPixel(unsigned x, unsigned y, glm::ivec3 rgb);
     virtual void setPixel(unsigned x, unsigned y, glm::vec3 rgb);
     virtual void clear();
+    void savePPM();
 
 };
 

@@ -241,6 +241,8 @@ int main(int argc, char **argv) {
                 key = SDL_GetKeyName(event.key.keysym.sym);
                 if (strcmp(key, "Escape") == 0) {
                     running = false;
+                } else if (strcmp(key, "F10") == 0) {
+                    pixelBuffer.savePPM();
                 }
                 break;
 
