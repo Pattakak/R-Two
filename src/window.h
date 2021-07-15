@@ -9,8 +9,8 @@
 #include <SDL2/SDL.h>
 
 // Window dimensions
-static const int WINDOW_WIDTH = 1280;
-static const int WINDOW_HEIGHT = 720;
+static const int WINDOW_WIDTH = 400;
+static const int WINDOW_HEIGHT = 300;
 
 typedef enum {
     KEY_DEF,

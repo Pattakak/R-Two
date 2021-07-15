@@ -197,7 +197,7 @@ int main(int argc, char **argv) {
     unsigned long frameCount = 0;
 
     // Camera to link to program, and a mousedown functionality that lets you capture the mouse
-    Camera cam = Camera(0.0f, 0.0f, 0.0f, 0.0f, -3.1415f / 2.0f);
+    Camera cam = Camera(0.0f, 1.0f, 3.0f, 0.0f, -3.1415f / 2.0f);
 
     // specify OpenCL kernel arguments
     kernel.setArg(CL_INPUT_FRAME, cl_frame);

@@ -1,5 +1,4 @@
 #define PI 3.141592654359f
-#define ZERO3 ((float3)(0.0f,0.0f,0.0f))
 
 // current shitty noise
 float noise(float3 *seed) {
@@ -59,7 +58,8 @@ typedef struct PhongMaterial {
 } PhongMaterial;
 
 PhongMaterial createPhongMaterial(float3 ambient, float3 albedo, float3 specular, float3 emission) {
-    return (PhongMaterial){ambient, albedo, specular, emission};
+    float3 myAmbient = albedo / 10.0f;
+    return (PhongMaterial){myAmbient, albedo, specular, emission};
 }
 
 float3 phongBRDF(PhongMaterial material, float3 lightOutDir, float3 lightInDir) {
@@ -82,6 +82,21 @@ typedef struct Plane {
     float3 normal;
     PhongMaterial material;
 } Plane;
+
+typedef struct Triangle {
+    float3 a;
+    float3 b;
+    float3 c;
+    float3 normal;
+    PhongMaterial material;
+} Triangle;
+
+typedef struct Disc {
+    float3 center;
+    float3 normal;
+    float radius;
+    PhongMaterial material;
+} Disc;
 
 typedef struct HitInfo {
     float3 normal;
@@ -169,33 +184,167 @@ float intersectPlane(const Ray *ray, const Plane *plane) {
 	}
 }
 
-HitInfo intersectScene(Ray *ray) {
-	Sphere spheres[8];
-	spheres[0] = createSphere((float3)(0.5f, 0.0f, -2.0f), 0.5f, createPhongMaterial(ZERO3, (float3)(1.0f, 1.0f, 1.0f), (float3)(1.0f,1.0f,1.0f), ZERO3));
-    spheres[1] = createSphere((float3)(-0.5f, 0.0f, -2.0f), 0.5f, createPhongMaterial(ZERO3, (float3)(0.5f, 0.5f, 1.0f), ZERO3, ZERO3));
-    spheres[2] = createSphere((float3)(0.0f, -100.5f, 0.0f), 100.0f, createPhongMaterial(ZERO3, (float3)(0.8, 0.8, 0.8), ZERO3, ZERO3));
-    spheres[3] = createSphere((float3)(102.0f, 0.0f, 0.0f), 100.0f, createPhongMaterial(ZERO3, (float3)(0.2f, 1.0f, 0.2f), ZERO3, ZERO3));
-    spheres[4] = createSphere((float3)(-102.0f, 0.0f, 0.0f), 100.0f, createPhongMaterial(ZERO3, (float3)(1.0, 0.2, 0.2), ZERO3, ZERO3));
-    spheres[5] = createSphere((float3)(0.0f, 0.0f, -104.0f), 100.0f, createPhongMaterial(ZERO3, (float3)(0.81, 0.68, 0.40), ZERO3, ZERO3));
-    spheres[6] = createSphere((float3)(0.0f, 104.0f, -2.0f), 100.0f, createPhongMaterial(ZERO3, (float3)(0.2, 0.2, 1.0), ZERO3, ZERO3));
-    spheres[7] = createSphere((float3)(0.0f, 4.0f, -2.0f), 1.0f, createPhongMaterial(ZERO3, (float3)(0.0f, 0.0f, 0.0f), ZERO3, (float3)(3.0f, 3.0f, 3.0f)));
-    // fudge factor - set ambients to fraction of diffuse
-    for (int i = 0; i < 8; i++) {
-        spheres[i].material.ambient = 0.1f*spheres[i].material.albedo;
+// https://gamedev.stackexchange.com/questions/23743/whats-the-most-efficient-way-to-find-barycentric-coordinates
+// Transcribed from Real Time Collision Detection
+float3 barycentric(const float3 *p, const Triangle *tri) {
+    float3 v0 = tri->b - tri->a;
+    float3 v1 = tri->c - tri->a;
+    float3 v2 = *p - tri->a;
+    float d00 = dot(v0, v0);
+    float d01 = dot(v0, v1);
+    float d11 = dot(v1, v1);
+    float d20 = dot(v2, v0);
+    float d21 = dot(v2, v1);
+    float denom = d00 * d11 - d01 * d01;
+    float v = (d11 * d20 - d01 * d21) / denom;
+    float w = (d00 * d21 - d01 * d20) / denom;
+    float u = 1.0f - v - w;
+    return (float3)(u, v, w);
+}
+
+float intersectTriangle(const Ray *ray, Triangle *tri) {
+    Plane p;
+    p.point = (tri->a + tri->b + tri->c) / 3.0f;
+    p.normal = normalize(cross(tri->b - tri->a, tri->c - tri->a));
+    tri->normal = p.normal;
+    float t = intersectPlane(ray, &p);
+    if (t == MAXFLOAT) {
+        return MAXFLOAT;    // missed the plane of the triangle
     }
+    float3 hitPoint = ray->position + t * ray->direction;
+    float3 bary = barycentric(&hitPoint, tri);
+    if (0 < bary.x && bary.x < 1 && 0 < bary.y && bary.y < 1 && 0 < bary.z && bary.z < 1) {
+        return t;
+    }
+    return MAXFLOAT;
+}
+
+float intersectDisc(const Ray *ray, const Disc* disc) {
+    Plane p;
+    p.point = disc->center;
+    p.normal = disc->normal;
+    float t = intersectPlane(ray, &p);
+    if (t == MAXFLOAT) {
+        return MAXFLOAT;
+    }
+    float3 hitPoint = ray->position + t * ray->direction;
+    if (distance(hitPoint, disc->center) > disc->radius) {
+        return MAXFLOAT;
+    }
+    return t;
+}
+
+HitInfo intersectScene(Ray *ray) {
+	// Sphere spheres[8];
+	// spheres[0] = createSphere((float3)(0.5f, 0.0f, -2.0f), 0.5f, createPhongMaterial(float3(0), (float3)(1.0f, 1.0f, 1.0f), (float3)(1.0f,1.0f,1.0f), float3(0)));
+    // spheres[1] = createSphere((float3)(-0.5f, 0.0f, -2.0f), 0.5f, createPhongMaterial(float3(0), (float3)(0.5f, 0.5f, 1.0f), float3(0), float3(0)));
+    // spheres[2] = createSphere((float3)(0.0f, -100.5f, 0.0f), 100.0f, createPhongMaterial(float3(0), (float3)(0.8, 0.8, 0.8), float3(0), float3(0)));
+    // spheres[3] = createSphere((float3)(102.0f, 0.0f, 0.0f), 100.0f, createPhongMaterial(float3(0), (float3)(0.2f, 1.0f, 0.2f), float3(0), float3(0)));
+    // spheres[4] = createSphere((float3)(-102.0f, 0.0f, 0.0f), 100.0f, createPhongMaterial(float3(0), (float3)(1.0, 0.2, 0.2), float3(0), float3(0)));
+    // spheres[5] = createSphere((float3)(0.0f, 0.0f, -104.0f), 100.0f, createPhongMaterial(float3(0), (float3)(0.81, 0.68, 0.40), float3(0), float3(0)));
+    // spheres[6] = createSphere((float3)(0.0f, 104.0f, -2.0f), 100.0f, createPhongMaterial(float3(0), (float3)(0.2, 0.2, 1.0), float3(0), float3(0)));
+    // spheres[7] = createSphere((float3)(0.0f, 4.0f, -2.0f), 1.0f, createPhongMaterial(float3(0), (float3)(0.0f, 0.0f, 0.0f), float3(0), (float3)(3.0f, 3.0f, 3.0f)));
+    // // fudge factor - set ambients to fraction of diffuse
+    // for (int i = 0; i < 8; i++) {
+    //     spheres[i].material.ambient = 0.1f*spheres[i].material.albedo;
+    // }
     
-	float t;
-    HitInfo bestHit; bestHit.normal = (float3)(0.0f,0.0f,0.0f); bestHit.distance = MAXFLOAT;
-    // iterate through scene
-    for (int i = 0; i < 8; i++) {
-        t = intersectSphere(ray, spheres[i]);
-        if (t > 0. && t < bestHit.distance) {
+	// float t;
+    // HitInfo bestHit; bestHit.normal = (float3)(0.0f,0.0f,0.0f); bestHit.distance = MAXFLOAT;
+    // // iterate through scene
+    // for (int i = 0; i < 8; i++) {
+    //     t = intersectSphere(ray, spheres[i]);
+    //     if (t > 0. && t < bestHit.distance) {
+    //         bestHit.distance = t;
+    //         bestHit.position = ray->position+ t*ray->direction;
+    //         bestHit.normal = normalize(bestHit.position- spheres[i].position);
+	// 		bestHit.material = spheres[i].material;
+	//     }
+    // }
+    // return bestHit;
+
+    Plane planes[6];
+    planes[0].point  = (float3)(-2, 0, 0); // left wall
+    planes[0].normal = (float3)(1, 0, 0);
+    planes[0].material = createPhongMaterial(float3(0), (float3)(1.0, 0.2, 0.2), float3(0), float3(0));
+
+    planes[1].point  = (float3)(2, 0, 0);  // right wall
+    planes[1].normal = (float3)(-1, 0, 0);
+    planes[1].material = createPhongMaterial(float3(0), (float3)(0.2f, 1.0f, 0.2f), float3(0), float3(0));
+
+    planes[2].point  = (float3)(0, 0, -5); // front wall
+    planes[2].normal = (float3)(0, 0, 1);
+    planes[2].material = createPhongMaterial(float3(0), (float3)(0.81, 0.68, 0.40), float3(0), float3(0));
+
+    planes[3].point  = (float3)(0, -0.5, 0); // floor
+    planes[3].normal = (float3)(0,  1, 0);
+    planes[3].material = createPhongMaterial(float3(0), (float3)(0.8, 0.8, 0.8), float3(0), float3(0));
+    
+    planes[4].point  = (float3)(0, 2, 0); // ceiling
+    planes[4].normal = (float3)(0, -1, 0);
+    planes[4].material = createPhongMaterial(float3(0), (float3)(0.2f, 0.2f, 1.0f), float3(0), float3(0));
+
+    planes[5].point  = (float3)(0, 0, 4);   // back wall
+    planes[5].normal = (float3)(0, 0, -1);
+    planes[5].material = createPhongMaterial(float3(0), (float3)(0.81, 0.68, 0.40), float3(0), float3(0));
+
+    Sphere spheres[2];
+	spheres[0].position = (float3)(0.5f, 0.0f, -2.5f);	// inner sphere 1
+	spheres[0].radius = 0.5f;
+	spheres[0].material = createPhongMaterial(float3(0), (float3)(1.0f, 1.0f, 1.0f), (float3)(1.0f,1.0f,1.0f), float3(0));
+
+	spheres[1].position = (float3)(-0.5f, 0.0f, -3.0f);	// inner sphere 2
+	spheres[1].radius = 0.5f;
+	spheres[1].material = createPhongMaterial(float3(0), (float3)(0.5f, 0.5f, 1.0f), float3(0), float3(0));
+
+    Triangle tri;
+    tri.a = (float3)(-0.5f, 0, -2.0f);
+    tri.b = (float3)(0, -0.5f, -1.75f);
+    tri.c = (float3)(0, -0.25f, -2.25f);
+    tri.material = createPhongMaterial(float3(0), (float3)(0.2f, 1.0f, 0.2f), float3(0), (float3)(0));
+
+    Disc disc;
+    disc.center = (float3)(0, 1.99, -3);
+    disc.normal = (float3)(0, -1, 0);
+    disc.material = createPhongMaterial(float3(0), (float3)(0.0f, 0.0f, 0.0f), float3(0), (float3)(6));
+    disc.radius = 0.5;
+
+	float t = MAXFLOAT;
+    HitInfo bestHit;
+    bestHit.normal = (float3)(0.0f,0.0f,0.0f);
+	bestHit.distance = MAXFLOAT;
+
+    for (int i = 0; i < 6; i++) {
+        if ((t = intersectPlane(ray, &planes[i])) < bestHit.distance) {
             bestHit.distance = t;
-            bestHit.position = ray->position+ t*ray->direction;
-            bestHit.normal = normalize(bestHit.position- spheres[i].position);
+            bestHit.position = ray->position + t*ray->direction;
+            bestHit.normal = planes[i].normal;
+			bestHit.material = planes[i].material;
+        }
+    }
+
+    for (int i = 0; i < 2; i++) {
+        if ((t = intersectSphere(ray, spheres[i])) < bestHit.distance) {
+            bestHit.distance = t;
+            bestHit.position = ray->position + t*ray->direction;
+            bestHit.normal = normalize(bestHit.position - spheres[i].position);
 			bestHit.material = spheres[i].material;
 	    }
     }
+
+    if ((t = intersectTriangle(ray, &tri)) < bestHit.distance) {
+        bestHit.distance = t;
+        bestHit.position = ray->position + t * ray->direction;
+        bestHit.normal = tri.normal;
+        bestHit.material = tri.material;
+    }
+    if ((t = intersectDisc(ray, &disc)) < bestHit.distance) {
+        bestHit.distance = t;
+        bestHit.position = ray->position + t * ray->direction;
+        bestHit.normal = disc.normal;
+        bestHit.material = disc.material;
+    }
+
     return bestHit;
 }
 
