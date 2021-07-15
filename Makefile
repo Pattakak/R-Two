@@ -22,10 +22,10 @@ LIBOPENCL := -lOpenCL
 $(EXE): $(OBJS) 
 	$(LD) $(LDFLAGS) $^ -o $(EXE) $(LIBS) $(LIBOPENCL)
 
-$(OBJ)/%.o: $(SRC)/%.cpp
+$(OBJ)/%.o: $(SRC)/%.cpp $(SRC)/*.h 
 	$(CC) $(CXXFLAGS) -c $< -o $@
 
-$(OBJ)/%.o: $(SRC)/%.c
+$(OBJ)/%.o: $(SRC)/%.c $(SRC)/*.h
 	$(CC) $(CXXFLAGS) -c $< -o $@
 
 .PHONY: release
