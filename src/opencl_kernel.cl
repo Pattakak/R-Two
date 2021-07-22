@@ -305,34 +305,6 @@ float intersectDisc(const Ray *ray, const Disc* disc) {
 }
 
 HitInfo intersectScene(Ray *ray) {
-	// Sphere spheres[8];
-	// spheres[0] = createSphere((float3)(0.5f, 0.0f, -2.0f), 0.5f, createPhongMaterial(float3(0), (float3)(1.0f, 1.0f, 1.0f), (float3)(1.0f,1.0f,1.0f), float3(0)));
-    // spheres[1] = createSphere((float3)(-0.5f, 0.0f, -2.0f), 0.5f, createPhongMaterial(float3(0), (float3)(0.5f, 0.5f, 1.0f), float3(0), float3(0)));
-    // spheres[2] = createSphere((float3)(0.0f, -100.5f, 0.0f), 100.0f, createPhongMaterial(float3(0), (float3)(0.8, 0.8, 0.8), float3(0), float3(0)));
-    // spheres[3] = createSphere((float3)(102.0f, 0.0f, 0.0f), 100.0f, createPhongMaterial(float3(0), (float3)(0.2f, 1.0f, 0.2f), float3(0), float3(0)));
-    // spheres[4] = createSphere((float3)(-102.0f, 0.0f, 0.0f), 100.0f, createPhongMaterial(float3(0), (float3)(1.0, 0.2, 0.2), float3(0), float3(0)));
-    // spheres[5] = createSphere((float3)(0.0f, 0.0f, -104.0f), 100.0f, createPhongMaterial(float3(0), (float3)(0.81, 0.68, 0.40), float3(0), float3(0)));
-    // spheres[6] = createSphere((float3)(0.0f, 104.0f, -2.0f), 100.0f, createPhongMaterial(float3(0), (float3)(0.2, 0.2, 1.0), float3(0), float3(0)));
-    // spheres[7] = createSphere((float3)(0.0f, 4.0f, -2.0f), 1.0f, createPhongMaterial(float3(0), (float3)(0.0f, 0.0f, 0.0f), float3(0), (float3)(3.0f, 3.0f, 3.0f)));
-    // // fudge factor - set ambients to fraction of diffuse
-    // for (int i = 0; i < 8; i++) {
-    //     spheres[i].material.ambient = 0.1f*spheres[i].material.albedo;
-    // }
-    
-	// float t;
-    // HitInfo bestHit; bestHit.normal = (float3)(0.0f,0.0f,0.0f); bestHit.distance = MAXFLOAT;
-    // // iterate through scene
-    // for (int i = 0; i < 8; i++) {
-    //     t = intersectSphere(ray, spheres[i]);
-    //     if (t > 0. && t < bestHit.distance) {
-    //         bestHit.distance = t;
-    //         bestHit.position = ray->position+ t*ray->direction;
-    //         bestHit.normal = normalize(bestHit.position- spheres[i].position);
-	// 		bestHit.material = spheres[i].material;
-	//     }
-    // }
-    // return bestHit;
-    
     Plane planes[6];
     planes[0].point  = (float3)(-2, 0, 0); // left wall
     planes[0].normal = (float3)(1, 0, 0);
@@ -385,7 +357,7 @@ HitInfo intersectScene(Ray *ray) {
     bestHit.normal = (float3)(0.0f,0.0f,0.0f);
 	bestHit.distance = MAXFLOAT;
 
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < 6; i++) {
         if ((t = intersectPlane(ray, &planes[i])) < bestHit.distance) {
             bestHit.distance = t;
             bestHit.position = ray->position + t*ray->direction;
@@ -419,17 +391,32 @@ HitInfo intersectScene(Ray *ray) {
     return bestHit;
 }
 
+void BRDF(Ray *ray, HitInfo *hit, unsigned long framecount, float3 *seed, float3 *lightOutDir, float3 lightInDir) {
+    ray->radiance += ray->weakness*hit->material.emission;
+    if (hit->material.specular.x > 0.001) {
+        // metallic object
+        *lightOutDir = (normalize(reflect(lightInDir, hit->normal)));
+    } else {
+        // diffuse object
+        *lightOutDir = sampleHemisphere(hit->normal, framecount, seed);
+    }
+    ray->weakness *= phongBRDF(hit->material, -ray->direction, *lightOutDir) * sdot(hit->normal, *lightOutDir);
+    ray->direction = *lightOutDir;
+}
+
 void updateRay(Ray *ray, HitInfo *hit, unsigned long frameCount, float3 *seed) {
     const float epsilon = 0.0001f;
     ray->position= hit->position+ epsilon*hit->normal;
     
     // choose sample direction
-    float3 outDir = sampleHemisphere(hit->normal, frameCount, seed);
-    // accumulate radiance and weakness according to rendering equation
-    ray->radiance += ray->weakness*hit->material.emission;
-    ray->weakness *= phongBRDF(hit->material, -ray->direction, outDir) * sdot(hit->normal, outDir);
-    // update ray direction
-    ray->direction = outDir;
+    // float3 outDir = sampleHemisphere(hit->normal, frameCount, seed);
+    // // accumulate radiance and weakness according to rendering equation
+    // ray->radiance += ray->weakness*hit->material.emission;
+    // ray->weakness *= phongBRDF(hit->material, -ray->direction, outDir) * sdot(hit->normal, outDir);
+    // // update ray direction
+    // ray->direction = outDir;
+    float3 lightOutDir = (float3)(0);
+    BRDF(ray, hit, frameCount, seed, &lightOutDir, ray->direction);
 }
 
 float4 traceRay(Ray *ray, unsigned long frameCount, float3 *seed) {
