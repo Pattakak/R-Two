@@ -154,7 +154,7 @@ void initOpenCL()
 
     // Create an OpenCL program by performing runtime source compilation for the chosen device
     program = Program(context, kernel_source);
-    std::string options("-I ../include/generators/");
+    std::string options("-I ./generators");
     cl_int result = program.build({ device }, options.c_str());
     if (result) cout << "Error during compilation OpenCL code!!!\n (" << result << ")" << endl;
     if (result == CL_BUILD_PROGRAM_FAILURE) printErrorLog(program, device);
