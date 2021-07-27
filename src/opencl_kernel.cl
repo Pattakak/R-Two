@@ -140,13 +140,13 @@ Mat3 getTangentSpace(float3 normal) {
     return mat;
 }
 
-float3 sampleHemisphere(float3 normal, unsigned long frameCount, float3 *seed) {
+float3 sampleHemisphere(float3 normal, unsigned long frameCount, tinymt32_state *state) {
     // returns a vector uniformly sampled from the hemisphere around a given normal
     // borrowed from http://three-eyed-games.com/2018/05/12/gpu-path-tracing-in-unity-part-2/
     // uniformly sample hemisphere direction
-    float cosTheta = noise(seed);
+    float cosTheta = tinymt32_float(state);
     float sinTheta = sqrt(max(0.0f, 1.0f - cosTheta * cosTheta));
-    float phi = 2 * 3.141528 * noise(seed);
+    float phi = 2 * 3.141528 * tinymt32_float(state);
     float3 tangentSpaceDir = (float3)(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
     // transform direction to world space
     return mul(getTangentSpace(normal), tangentSpaceDir);
@@ -270,8 +270,8 @@ void metallicBRDF(Ray *ray, HitInfo *hit) {
     ray->direction = normalize(reflect(ray->direction, hit->normal));
 }
 
-void diffuseBRDF(Ray *ray, HitInfo *hit, unsigned long frameCount, float3 *seed) {
-    float3 lightOutDir = sampleHemisphere(hit->normal, frameCount, seed);
+void diffuseBRDF(Ray *ray, HitInfo *hit, unsigned long frameCount, tinymt32_state *state) {
+    float3 lightOutDir = sampleHemisphere(hit->normal, frameCount, state);
     ray->radiance += ray->weakness * hit->material.emission;
     ray->weakness *= 2.0f * hit->material.albedo * sdot(hit->normal, lightOutDir);
     ray->position = hit->position;
@@ -281,14 +281,14 @@ void diffuseBRDF(Ray *ray, HitInfo *hit, unsigned long frameCount, float3 *seed)
 
 
 //// SCENE
-void updateRay(Ray *ray, HitInfo *hit, unsigned long frameCount, float3 *seed) {
+void updateRay(Ray *ray, HitInfo *hit, unsigned long frameCount, tinymt32_state *state) {
     if (hit->material.ir > 0) {
         dielectricBRDF(ray, hit);
     }
     else if (hit->material.specular.x > 0) {
         metallicBRDF(ray, hit);
     } else {
-        diffuseBRDF(ray, hit, frameCount, seed);
+        diffuseBRDF(ray, hit, frameCount, state);
     }
 }
 
@@ -382,26 +382,32 @@ HitInfo intersectScene(Ray *ray) {
     return bestHit;
 }
 
-float4 traceRay(Ray *ray, unsigned long frameCount, float3 *seed) {
+float4 traceRay(Ray *ray, unsigned long frameCount, tinymt32_state *state) {
 	const int RECURSION_DEPTH = 4;
     for (int i = 0; i < RECURSION_DEPTH; i++) {
         HitInfo info = intersectScene(ray);
         if (i == RECURSION_DEPTH-1) info.material.emission = float3(0.5); // current way to fudge remaining recursion results
-		updateRay(ray, &info, frameCount, seed);
+		updateRay(ray, &info, frameCount, state);
     }
 	return (float4)(ray->radiance, 1.0f);
 }
 
-__kernel void render_kernel(__global float4 *frame, __global uint *pixels, int width, int height, unsigned long frameCount, float3 camDir, float3 camRight, float3 camUp, float3 camPos, float2 rands) {
+__kernel void render_kernel(__global float4 *frame, __global uint *pixels, __global ulong* seeds, int width, int height, 
+                            unsigned long frameCount, float3 camDir, float3 camRight, 
+                            float3 camUp, float3 camPos) {
     const int work_item_id = get_global_id(0);
+    
+    tinymt32_state state;
+    tinymt32_seed(&state, seeds[work_item_id]);
+
     int x_coord = work_item_id % width;
     int y_coord = work_item_id / width;
-    float2 uv = (float2)((float)(x_coord + rands.x) - 0.5f*(float)width, 0.5f*(float)height - (float)(y_coord + rands.y)) / (float)height;
+    float2 uv = (float2)((float)(x_coord + tinymt32_float(state)) - 0.5f*(float)width, 0.5f*(float)height - (float)(y_coord + tinymt32_float(state))) / (float)height;
 
 	// trace
 	Ray camRay = createCamRay(uv, camPos, camDir, camRight, camUp);
     float3 seed = (float3)(uv.x, uv.y, frameCount);
-    float4 result = traceRay(&camRay, frameCount, &seed);
+    float4 result = traceRay(&camRay, frameCount, &state);
 
     if (frameCount <= 0) {
         // clear running average

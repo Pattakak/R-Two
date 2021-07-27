@@ -31,7 +31,8 @@ Context context;
 Program program;
 Buffer cl_frame;
 Buffer cl_pixels;
-
+Buffer cl_seed;
+cl_ulong rands[WINDOW_HEIGHT * WINDOW_WIDTH];
 
 static float get_random_numer() {
     static std::random_device rd;
@@ -193,6 +194,7 @@ int main(int argc, char **argv) {
     // Create image buffers on the OpenCL device
     cl_pixels = Buffer(context, CL_MEM_READ_ONLY,  WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(cl_uint));   // output pixels
     cl_frame  = Buffer(context, CL_MEM_WRITE_ONLY, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(cl_float4)); // higher precision blend buffer
+    cl_seed   = Buffer(context, CL_MEM_WRITE_ONLY, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(cl_ulong), (void *)(&rands));
 
     unsigned long frameCount = 0;
 
@@ -202,6 +204,7 @@ int main(int argc, char **argv) {
     // specify OpenCL kernel arguments
     kernel.setArg(CL_INPUT_FRAME, cl_frame);
     kernel.setArg(CL_INPUT_PIXELS, cl_pixels);
+    kernel.setArg(CL_INPUT_RANDS, cl_seed);
     kernel.setArg(CL_INPUT_WIDTH, WINDOW_WIDTH);
     kernel.setArg(CL_INPUT_HEIGHT, WINDOW_HEIGHT);
     kernel.setArg(CL_INPUT_FRAMECOUNT, frameCount);
@@ -220,7 +223,6 @@ int main(int argc, char **argv) {
     long long msi, msf;
     init_ms = timestamp.tv_sec * 1000000 + timestamp.tv_usec;
     msi = init_ms;
-
     
     bool mousedown = false;
 
@@ -336,11 +338,11 @@ int main(int argc, char **argv) {
 
 
         kernel.setArg(CL_INPUT_FRAMECOUNT, frameCount++);
-
-        float rand1 = get_random_numer();
-        float rand2 = get_random_numer();
-        glm::vec2 rands(rand1, rand2);
-        kernel.setArg(CL_INPUT_RANDS, glmVec2ToCl(rands));
+        
+        
+        for (int i = 0; i < WINDOW_WIDTH * WINDOW_HEIGHT; i++) {
+            rands[i] = get_random_numer();
+        }
 
         // Clear screen
         SDL_UpdateTexture(texture, NULL, pixelBuffer.pixels,  pixelBuffer.width * sizeof(cl_uint));
