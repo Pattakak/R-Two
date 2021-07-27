@@ -154,7 +154,7 @@ void initOpenCL()
 
     // Create an OpenCL program by performing runtime source compilation for the chosen device
     program = Program(context, kernel_source);
-    std::string options("-I ./generators");
+    std::string options("-I ./include");
     cl_int result = program.build({ device }, options.c_str());
     if (result) cout << "Error during compilation OpenCL code!!!\n (" << result << ")" << endl;
     if (result == CL_BUILD_PROGRAM_FAILURE) printErrorLog(program, device);
@@ -197,7 +197,7 @@ int main(int argc, char **argv) {
     unsigned long frameCount = 0;
 
     // Camera to link to program, and a mousedown functionality that lets you capture the mouse
-    Camera cam = Camera(0.0f, 1.0f, 3.0f, 0.0f, -3.1415f / 2.0f);
+    Camera cam = Camera(0.0f, 0.5f, 0.5f, 0.0f, -3.1415f / 2.0f);
 
     // specify OpenCL kernel arguments
     kernel.setArg(CL_INPUT_FRAME, cl_frame);
