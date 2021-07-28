@@ -12,7 +12,7 @@ Material createMaterial(float3 albedo, float3 specular, float3 emission, float i
 
 void dielectricBRDF(Ray *ray, HitInfo *hit) {
     // lifted from Ray Tracing In One Weekend by Peter Shirley
-    bool frontFace = dot(ray->direction, hit->normal) < 0;
+    bool frontFace = dot(ray->direction, hit->normal) < 0.0f;
     float refraction_ratio = frontFace ? (1.0f / hit->material.ir) : hit->material.ir;
 
     float cos_theta = min(dot(-ray->direction, hit->normal), 1.0f);
@@ -21,14 +21,21 @@ void dielectricBRDF(Ray *ray, HitInfo *hit) {
     bool cannot_refract = refraction_ratio * sin_theta > 1.0f;
     float3 direction;
 
-    if (cannot_refract)
-        direction = reflect(ray->direction, hit->normal);
-    else
-        direction = refract(ray->direction, hit->normal, refraction_ratio);
+    float3 normal = frontFace ? hit->normal : -(hit->normal);
+
+    if (cannot_refract) {
+        direction = reflect(ray->direction, normal);
+        ray->position = hit->position + 0.00001f*normal;
+    }
+    else {
+        direction = refract(ray->direction, normal, refraction_ratio);
+        ray->position = hit->position - 0.00001f*normal;
+    }
 
     ray->radiance += ray->weakness * hit->material.emission;
     ray->weakness *= hit->material.albedo;
-    ray->position = hit->position;
+
+    
     ray->direction = direction;
 }
 

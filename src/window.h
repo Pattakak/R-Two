@@ -9,8 +9,14 @@
 #include <SDL2/SDL.h>
 
 // Window dimensions
+#ifdef __APPLE__
 static const int WINDOW_WIDTH = 640;
 static const int WINDOW_HEIGHT = 400;
+#else
+static const int WINDOW_WIDTH = 1280;
+static const int WINDOW_HEIGHT = 720;
+#endif
+
 
 typedef enum {
     KEY_DEF,
