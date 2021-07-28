@@ -20,7 +20,7 @@ typedef struct Ray {
 // have to put the Material and HitInfo structs here, or else there will be circular dependencies.
 typedef struct Material {
     float3 albedo;      // used for diffuse objects. All objects must have this!
-    float3 specular;    // used for etallic objects
+    float3 specular;    // used for metallic objects
     float3 emission;    // used for lights
     float  ir;          // index of refraction, for dielectrics
 } Material;

@@ -10,7 +10,14 @@ Material createMaterial(float3 albedo, float3 specular, float3 emission, float i
     return (Material){albedo, specular, emission, ir};
 }
 
-void dielectricBRDF(Ray *ray, HitInfo *hit) {
+float reflectance(float cosine, float ref_idx) {
+    // Use Schlick's approximation for reflectance.
+    float r0 = (1 - ref_idx) / (1 + ref_idx);
+    r0 = r0 * r0;
+    return r0 + (1 - r0) * pow((1 - cosine), 5);
+}
+
+void dielectricBRDF(Ray *ray, HitInfo *hit, float3 *seed) {
     // lifted from Ray Tracing In One Weekend by Peter Shirley
     bool frontFace = dot(ray->direction, hit->normal) < 0;
     float refraction_ratio = frontFace ? (1.0f / hit->material.ir) : hit->material.ir;
@@ -21,22 +28,29 @@ void dielectricBRDF(Ray *ray, HitInfo *hit) {
     bool cannot_refract = refraction_ratio * sin_theta > 1.0f;
     float3 direction;
 
-    if (cannot_refract)
-        direction = reflect(ray->direction, hit->normal);
-    else
-        direction = refract(ray->direction, hit->normal, refraction_ratio);
+    // make sure the normal points against the ray.
+    float3 normal = frontFace ? hit->normal : -hit->normal;
+
+    if (cannot_refract || reflectance(cos_theta, refraction_ratio) > noise(seed)) {
+        direction = reflect(ray->direction, normal);
+        ray->position = hit->position + 0.00001f * normal;
+    }
+    else {
+        direction = refract(ray->direction, normal, refraction_ratio);
+        ray->position = hit->position - 0.00001f * normal;
+    }
 
     ray->radiance += ray->weakness * hit->material.emission;
     ray->weakness *= hit->material.albedo;
-    ray->position = hit->position;
+    // ray->position = hit->position;
     ray->direction = direction;
 }
 
 void metallicBRDF(Ray *ray, HitInfo *hit) {
     ray->radiance += ray->weakness * hit->material.emission;
-    ray->weakness *= hit->material.specular;
     ray->position = hit->position;
     ray->direction = normalize(reflect(ray->direction, hit->normal));
+    ray->weakness *= hit->material.specular * sdot(hit->normal, ray->direction);
 }
 
 void diffuseBRDF(Ray *ray, HitInfo *hit, unsigned long frameCount, float3 *seed) {

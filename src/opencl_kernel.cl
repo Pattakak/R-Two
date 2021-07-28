@@ -7,7 +7,7 @@
 
 void updateRay(Ray *ray, HitInfo *hit, unsigned long frameCount, float3 *seed) {
     if (hit->material.ir > 0) {
-        dielectricBRDF(ray, hit);
+        dielectricBRDF(ray, hit, seed);
     }
     else if (hit->material.specular.x > 0) {
         metallicBRDF(ray, hit);
@@ -109,9 +109,17 @@ HitInfo intersectScene(Ray *ray) {
 
 float4 traceRay(Ray *ray, unsigned long frameCount, float3 *seed) {
 	const int RECURSION_DEPTH = 4;
+    Material bgMaterial = createMaterial(float3(0.2, 0.2, 0.6), float3(0), float3(0.5), 0);
     for (int i = 0; i < RECURSION_DEPTH; i++) {
         HitInfo info = intersectScene(ray);
-        if (i == RECURSION_DEPTH-1) info.material.emission = float3(0.5); // current way to fudge remaining recursion results
+        // if the ray didn't hit anything, just say it hit the 'background'
+        if (info.distance == MAXFLOAT) {
+            info.material = bgMaterial;
+            updateRay(ray, &info, frameCount, seed);
+            break;
+        }
+        if (i == RECURSION_DEPTH - 1) 
+            info.material.emission = bgMaterial.emission; // current way to fudge remaining recursion results
 		updateRay(ray, &info, frameCount, seed);
     }
 	return (float4)(ray->radiance, 1.0f);
