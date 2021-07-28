@@ -19,7 +19,7 @@ float reflectance(float cosine, float ref_idx) {
 
 void dielectricBRDF(Ray *ray, HitInfo *hit, float3 *seed) {
     // lifted from Ray Tracing In One Weekend by Peter Shirley
-    bool frontFace = dot(ray->direction, hit->normal) < 0;
+    bool frontFace = dot(ray->direction, hit->normal) < 0.0f;
     float refraction_ratio = frontFace ? (1.0f / hit->material.ir) : hit->material.ir;
 
     float cos_theta = min(dot(-ray->direction, hit->normal), 1.0f);
@@ -28,21 +28,21 @@ void dielectricBRDF(Ray *ray, HitInfo *hit, float3 *seed) {
     bool cannot_refract = refraction_ratio * sin_theta > 1.0f;
     float3 direction;
 
-    // make sure the normal points against the ray.
-    float3 normal = frontFace ? hit->normal : -hit->normal;
+    float3 normal = frontFace ? hit->normal : -(hit->normal);
 
     if (cannot_refract || reflectance(cos_theta, refraction_ratio) > noise(seed)) {
         direction = reflect(ray->direction, normal);
-        ray->position = hit->position + 0.00001f * normal;
+        ray->position = hit->position + 0.00001f*normal;
     }
     else {
         direction = refract(ray->direction, normal, refraction_ratio);
-        ray->position = hit->position - 0.00001f * normal;
+        ray->position = hit->position - 0.00001f*normal;
     }
 
     ray->radiance += ray->weakness * hit->material.emission;
     ray->weakness *= hit->material.albedo;
-    // ray->position = hit->position;
+
+    
     ray->direction = direction;
 }
 
