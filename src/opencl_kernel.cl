@@ -109,7 +109,7 @@ HitInfo intersectScene(Ray *ray) {
 }
 
 float4 traceRay(Ray *ray, unsigned long frameCount, float3 *seed) {
-	const int RECURSION_DEPTH = 8;
+	const int RECURSION_DEPTH = 4;
     for (int i = 0; i < RECURSION_DEPTH; i++) {
         HitInfo info = intersectScene(ray);
         if (i == RECURSION_DEPTH-1) info.material.emission = (float3)(0.5); // current way to fudge remaining recursion results

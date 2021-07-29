@@ -10,8 +10,8 @@ Material createMaterial(float3 albedo, float3 specular, float3 emission, float i
     return (Material){albedo, specular, emission, ir};
 }
 
+// Use Schlick's approximation for reflectance.
 float reflectance(float cosine, float ref_idx) {
-    // Use Schlick's approximation for reflectance.
     float r0 = (1 - ref_idx) / (1 + ref_idx);
     r0 = r0 * r0;
     return r0 + (1 - r0) * pow((1 - cosine), 5);
@@ -22,13 +22,13 @@ void dielectricBRDF(Ray *ray, HitInfo *hit, float3 *seed) {
     bool frontFace = dot(ray->direction, hit->normal) < 0.0f;
     float refraction_ratio = frontFace ? (1.0f / hit->material.ir) : hit->material.ir;
 
-    float cos_theta = min(dot(-ray->direction, hit->normal), 1.0f);
+    float3 normal = frontFace ? hit->normal : -(hit->normal);
+
+    float cos_theta = min(dot(-ray->direction, normal), 1.0f);
     float sin_theta = sqrt(1.0f - cos_theta * cos_theta);
 
     bool cannot_refract = refraction_ratio * sin_theta > 1.0f;
     float3 direction;
-
-    float3 normal = frontFace ? hit->normal : -(hit->normal);
 
     if (cannot_refract || reflectance(cos_theta, refraction_ratio) > noise(seed)) {
         direction = reflect(ray->direction, normal);
@@ -41,8 +41,6 @@ void dielectricBRDF(Ray *ray, HitInfo *hit, float3 *seed) {
 
     ray->radiance += ray->weakness * hit->material.emission;
     ray->weakness *= hit->material.albedo;
-
-    
     ray->direction = direction;
 }
 
