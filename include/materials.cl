@@ -45,10 +45,13 @@ void dielectricBRDF(Ray *ray, HitInfo *hit, float3 *seed) {
 }
 
 void metallicBRDF(Ray *ray, HitInfo *hit) {
+    // Schlick approximation for metallic reflections: https://github.com/RayTracing/raytracing.github.io/issues/844
+    float cos_theta = sdot(hit->normal, -ray->direction);
+
     ray->radiance += ray->weakness * hit->material.emission;
     ray->position = hit->position;
     ray->direction = normalize(reflect(ray->direction, hit->normal));
-    ray->weakness *= hit->material.specular * sdot(hit->normal, ray->direction);
+    ray->weakness *= hit->material.specular + ((float3)(1) - hit->material.specular) * pow(1 - cos_theta, 5);
 }
 
 void diffuseBRDF(Ray *ray, HitInfo *hit, unsigned long frameCount, float3 *seed) {
