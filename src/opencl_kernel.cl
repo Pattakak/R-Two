@@ -7,52 +7,66 @@
 //// SCENE
 
 void updateRay(Ray *ray, HitInfo *hit, unsigned long frameCount, float3 *seed) {
-    if (hit->material.ir > 0) {
+    // if (hit->material.ir > 0) {
+    //     dielectricBRDF(ray, hit, seed);
+    // }
+    // else if (hit->material.specular.x > 0) {
+    //     metallicBRDF(ray, hit);
+    // } 
+    // else {
+    //     diffuseBRDF(ray, hit, frameCount, seed);
+    // }
+    if (hit->material.type == DIELECTRIC) {
         dielectricBRDF(ray, hit, seed);
     }
-    else if (hit->material.specular.x > 0) {
+    else if (hit->material.type == METALLIC) {
         metallicBRDF(ray, hit);
-    } 
+    }
     else {
         diffuseBRDF(ray, hit, frameCount, seed);
     }
+    
 }
 
 HitInfo intersectScene(Ray *ray) {
     Plane planes[1];
     planes[0].point  = (float3)(0, -0.5, 0); // floor
     planes[0].normal = (float3)(0,  1, 0);
-    planes[0].material = createMaterial((float3)(0.6), (float3)(0), (float3)(0), 0);
-    
-    Sphere spheres[3];
+    planes[0].material = createMaterial((float3)(0.6), (float3)(0), (float3)(0), 0, DIFFUSE);
+
+    Sphere spheres[4];
 	spheres[0].position = (float3)(0.5f, 0.0f, -2.5f);	// inner sphere 1
 	spheres[0].radius = 0.5f;
-	spheres[0].material = createMaterial((float3)(1.0f, 1.0f, 1.0f), (float3)(1, 0.2f, 0.2f), (float3)(0), 0);
+	spheres[0].material = createMaterial((float3)(1.0f, 1.0f, 1.0f), (float3)(1, 0.2f, 0.2f), (float3)(0), 0, METALLIC);
 
 	spheres[1].position = (float3)(-0.5f, 0.0f, -3.0f);	// inner sphere 2
 	spheres[1].radius = 0.5f;
-	spheres[1].material = createMaterial((float3)(0.5f, 0.5f, 1.0f), (float3)(0), (float3)(0), 0);
+	spheres[1].material = createMaterial((float3)(0.5f, 0.5f, 1.0f), (float3)(0), (float3)(0), 0, DIFFUSE);
 
     spheres[2].position = (float3)(0.0f, 0.2f, -1.5f);	// inner sphere 3
 	spheres[2].radius = 0.2f;
-	spheres[2].material = createMaterial((float3)(1, 1, 1), (float3)(0), (float3)(0), 1.5);
+	spheres[2].material = createMaterial((float3)(1, 1, 1), (float3)(0), (float3)(0), 1.5, DIELECTRIC);
+
+    spheres[3].position = (float3)(-0.5f, -0.3f, -2.25);	// inner sphere 4
+	spheres[3].radius = 0.2f;
+	spheres[3].material = createMaterial((float3)(1.0f, 1.0f, 1.0f), (float3)(0.8), (float3)(0), 0, METALLIC);
     
     Triangle tri;
     tri.a = (float3)(-0.5f, 0, -2.0f);
     tri.b = (float3)(0, -0.5f, -1.75f);
     tri.c = (float3)(0, -0.25f, -2.25f);
-    tri.material = createMaterial((float3)(0.2f, 1.0f, 0.2f), (float3)(0), (float3)(0), 0);
+    tri.material = createMaterial((float3)(0.2f, 1.0f, 0.2f), (float3)(0), (float3)(0), 0, DIFFUSE);
 
     Disc disc;
     disc.center = (float3)(0, 1.99, -3);
     disc.normal = (float3)(0, -1, 0);
-    disc.material = createMaterial((float3)(0.0f, 0.0f, 0.0f), (float3)(0), (float3)(6), 0);
+    disc.material = createMaterial((float3)(0.0f, 0.0f, 0.0f), (float3)(0), (float3)(6), 0, DIFFUSE);
     disc.radius = 0.5;
 
 	float t = MAXFLOAT;
     HitInfo bestHit;
     bestHit.normal = (float3)(0.0f,0.0f,0.0f);
-    bestHit.material = createMaterial((float3)(0), (float3)(0), (float3)(0.62, 0.88, 0.89) / 2, 0);
+    bestHit.material = createMaterial((float3)(0), (float3)(0), (float3)(1), 0, DIFFUSE);
 	bestHit.distance = MAXFLOAT;
 
     for (int i = 0; i < 1; i++) {
@@ -64,7 +78,7 @@ HitInfo intersectScene(Ray *ray) {
         }
     }
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 4; i++) {
         if ((t = intersectSphere(ray, spheres[i])) < bestHit.distance) {
             bestHit.distance = t;
             bestHit.position = ray->position + t*ray->direction;

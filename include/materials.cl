@@ -6,9 +6,10 @@
 
 // Material struct definition in utilities.cl
 
-Material createMaterial(float3 albedo, float3 specular, float3 emission, float ir) {
-    return (Material){albedo, specular, emission, ir};
+Material createMaterial(float3 albedo, float3 specular, float3 emission, float ir, MaterialType type) {
+    return (Material){albedo, specular, emission, ir, type};
 }
+
 
 // Use Schlick's approximation for reflectance.
 float reflectance(float cosine, float ref_idx) {
