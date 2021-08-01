@@ -19,31 +19,11 @@ void updateRay(Ray *ray, HitInfo *hit, unsigned long frameCount, float3 *seed) {
 }
 
 HitInfo intersectScene(Ray *ray) {
-    Plane planes[6];
-    planes[0].point  = (float3)(-2, 0, 0); // left wall
-    planes[0].normal = (float3)(1, 0, 0);
-    planes[0].material = createMaterial((float3)(1.0, 0.2, 0.2), (float3)(0), (float3)(0), 0);
-
-    planes[1].point  = (float3)(2, 0, 0);  // right wall
-    planes[1].normal = (float3)(-1, 0, 0);
-    planes[1].material = createMaterial((float3)(0.2f, 1.0f, 0.2f), (float3)(0), (float3)(0), 0);
-
-    planes[2].point  = (float3)(0, 0, -5); // front wall
-    planes[2].normal = (float3)(0, 0, 1);
-    planes[2].material = createMaterial((float3)(0.81, 0.68, 0.40), (float3)(0), (float3)(0), 0);
-
-    planes[3].point  = (float3)(0, -0.5, 0); // floor
-    planes[3].normal = (float3)(0,  1, 0);
-    planes[3].material = createMaterial((float3)(0.8, 0.8, 0.8), (float3)(0), (float3)(0), 0);
+    Plane planes[1];
+    planes[0].point  = (float3)(0, -0.5, 0); // floor
+    planes[0].normal = (float3)(0,  1, 0);
+    planes[0].material = createMaterial((float3)(0.6), (float3)(0), (float3)(0), 0);
     
-    planes[4].point  = (float3)(0, 2, 0); // ceiling
-    planes[4].normal = (float3)(0, -1, 0);
-    planes[4].material = createMaterial((float3)(0.2f, 0.2f, 1.0f), (float3)(0), (float3)(0), 0);
-
-    planes[5].point  = (float3)(0, 0, 4);   // back wall
-    planes[5].normal = (float3)(0, 0, -1);
-    planes[5].material = createMaterial((float3)(0.81, 0.68, 0.40), (float3)(0), (float3)(0), 0);
-
     Sphere spheres[3];
 	spheres[0].position = (float3)(0.5f, 0.0f, -2.5f);	// inner sphere 1
 	spheres[0].radius = 0.5f;
@@ -72,9 +52,10 @@ HitInfo intersectScene(Ray *ray) {
 	float t = MAXFLOAT;
     HitInfo bestHit;
     bestHit.normal = (float3)(0.0f,0.0f,0.0f);
+    bestHit.material = createMaterial((float3)(0), (float3)(0), (float3)(0.62, 0.88, 0.89) / 2, 0);
 	bestHit.distance = MAXFLOAT;
 
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 1; i++) {
         if ((t = intersectPlane(ray, &planes[i])) < bestHit.distance) {
             bestHit.distance = t;
             bestHit.position = ray->position + t*ray->direction;
@@ -112,7 +93,6 @@ float4 traceRay(Ray *ray, unsigned long frameCount, float3 *seed) {
 	const int RECURSION_DEPTH = 4;
     for (int i = 0; i < RECURSION_DEPTH; i++) {
         HitInfo info = intersectScene(ray);
-        if (i == RECURSION_DEPTH-1) info.material.emission = (float3)(0.5); // current way to fudge remaining recursion results
 		updateRay(ray, &info, frameCount, seed);
     }
 	return (float4)(ray->radiance, 1.0f);
